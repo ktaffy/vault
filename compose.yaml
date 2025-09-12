@@ -1,0 +1,13 @@
+services:
+  vault:
+    image: postgres:latest
+    environment:
+      POSTGRES_USER: vault
+      POSTGRES_PASSWORD: vault
+      POSTGRES_DB: vault
+    ports:
+      - "5432:5432"
+    volumes:
+      - vault-data:/var/lib/postgresql/data
+volumes:
+  vault-data:
