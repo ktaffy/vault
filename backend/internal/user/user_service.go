@@ -27,13 +27,23 @@ func (s *service) CreateUser(c context.Context, req *CreateUserReq) (*CreateUser
 	ctx, cancel := context.WithTimeout(c, s.timeOut)
 	defer cancel()
 
-	hashPass, err := util.HashPassword(req.Password)
+	cleanEmail, err := util.SanitizeEmail(req.Email)
+	if err != nil {
+		return nil, err
+	}
+
+	cleanPass, err := util.SanitizePassword(req.Password)
+	if err != nil {
+		return nil, err
+	}
+
+	hashPass, err := util.HashPassword(cleanPass)
 	if err != nil {
 		return nil, err
 	}
 	u := &User{
 		Username: req.Username,
-		Email:    req.Email,
+		Email:    cleanEmail,
 		Password: hashPass,
 	}
 
