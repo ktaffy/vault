@@ -2,6 +2,7 @@ package db
 
 import (
 	"github.com/jmoiron/sqlx"
+	"github.com/ktaffy/vault/backend/config"
 	_ "github.com/lib/pq"
 )
 
@@ -10,7 +11,8 @@ type Database struct {
 }
 
 func NewDatabase() (*Database, error) {
-	db, err := sqlx.Open("postgres", "postgres://vault:vault@localhost:5432/vault?sslmode=disable")
+	cfg := config.Load()
+	db, err := sqlx.Open("postgres", cfg.DatabaseURL)
 	if err != nil {
 		return nil, err
 	}

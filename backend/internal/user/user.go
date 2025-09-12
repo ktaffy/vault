@@ -28,17 +28,28 @@ type LoginUserReq struct {
 }
 
 type LoginUserRes struct {
-	accessToken string
-	ID          string `json:"id" db:"id"`
-	Username    string `json:"username" db:"username"`
+	AccessToken string   `json:"access_token"`
+	ExpiresIn   int      `json:"expires_in"`
+	User        UserInfo `json:"user"`
+}
+
+type UserInfo struct {
+	ID       string `json:"id"`
+	Username string `json:"username"`
+	Email    string `json:"email"`
 }
 
 type Repo interface {
 	CreateUser(ctx context.Context, user *User) (*User, error)
 	GetUserByEmailOrUsername(ctx context.Context, identifier string) (*User, error)
+	StoreRefreshToken(ctx context.Context, userID int64, tokenHash string) error
+	ValidateRefreshToken(ctx context.Context, tokenHash string) (int64, error)
+	RevokeUserTokens(ctx context.Context, userID int64) error
 }
 
 type Service interface {
 	CreateUser(c context.Context, req *CreateUserReq) (*CreateUserRes, error)
-	Login(c context.Context, req *LoginUserReq) (*LoginUserRes, error)
+	Login(c context.Context, req *LoginUserReq) (*LoginUserRes, string, error)
+	RefreshAccess(c context.Context, refreshToken string) (*LoginUserRes, string, error)
+	Logout(c context.Context, refreshToken string) error
 }

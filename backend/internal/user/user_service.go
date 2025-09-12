@@ -6,20 +6,27 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v4"
+	"github.com/ktaffy/vault/backend/config"
 	"github.com/ktaffy/vault/backend/util"
 )
 
-const secretKey = "secret"
-
 type service struct {
 	Repo
+	config  *config.Config
 	timeOut time.Duration
+}
+
+type JWTClaims struct {
+	ID       string `json:"id"`
+	Username string `json:"username"`
+	jwt.RegisteredClaims
 }
 
 func NewService(repo Repo) Service {
 	return &service{
-		repo,
-		time.Duration(2) * time.Second,
+		Repo:    repo,
+		config:  config.Load(),
+		timeOut: 5 * time.Second,
 	}
 }
 
@@ -61,46 +68,117 @@ func (s *service) CreateUser(c context.Context, req *CreateUserReq) (*CreateUser
 	return res, nil
 }
 
-type JWTClaims struct {
-	ID       string `json:"id"`
-	Username string `json:"username"`
-	jwt.RegisteredClaims
-}
-
-func (s *service) Login(c context.Context, req *LoginUserReq) (*LoginUserRes, error) {
+func (s *service) Login(c context.Context, req *LoginUserReq) (*LoginUserRes, string, error) {
 	ctx, cancel := context.WithTimeout(c, s.timeOut)
 	defer cancel()
 
 	u, err := s.Repo.GetUserByEmailOrUsername(ctx, req.Identifier)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
 	err = util.CheckPassword(req.Password, u.Password)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
-	// Generate JWT
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, JWTClaims{
-		ID:       strconv.Itoa(int(u.ID)),
-		Username: u.Username,
-		RegisteredClaims: jwt.RegisteredClaims{
-			Issuer:    strconv.Itoa(int(u.ID)),
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
-		},
-	})
+	userIDStr := strconv.FormatInt(u.ID, 10)
 
-	ss, err := token.SignedString([]byte(secretKey))
+	accessToken, err := s.generateAccessToken(userIDStr, u.Username)
 	if err != nil {
-		return nil, err
+		return nil, "", err
+	}
+
+	refreshToken, err := util.GenerateRefreshToken()
+	if err != nil {
+		return nil, "", err
+	}
+
+	// store refresh token
+	tokenHash := util.HashToken(refreshToken)
+	if err := s.Repo.StoreRefreshToken(ctx, u.ID, tokenHash); err != nil {
+		return nil, "", err
 	}
 
 	res := &LoginUserRes{
-		accessToken: ss,
-		Username:    u.Username,
-		ID:          strconv.Itoa(int(u.ID)),
+		AccessToken: accessToken,
+		ExpiresIn:   int(s.config.AccessTokenDuration.Seconds()),
+		User: UserInfo{
+			ID:       userIDStr,
+			Username: u.Username,
+			Email:    u.Email,
+		},
 	}
 
-	return res, nil
+	return res, refreshToken, nil
+}
+
+func (s *service) Logout(c context.Context, refreshToken string) error {
+	ctx, cancel := context.WithTimeout(c, s.timeOut)
+	defer cancel()
+
+	tokenHash := util.HashToken(refreshToken)
+	userID, err := s.Repo.ValidateRefreshToken(ctx, tokenHash)
+	if err != nil {
+		return nil
+	}
+	return s.Repo.RevokeUserTokens(ctx, userID)
+}
+
+func (s *service) RefreshAccess(c context.Context, refreshToken string) (*LoginUserRes, string, error) {
+	ctx, cancel := context.WithTimeout(c, s.timeOut)
+	defer cancel()
+
+	tokenHash := util.HashToken(refreshToken)
+	userID, err := s.Repo.ValidateRefreshToken(ctx, tokenHash)
+	if err != nil {
+		return nil, "", err
+	}
+
+	user, err := s.Repo.GetUserByEmailOrUsername(ctx, strconv.FormatInt(userID, 10))
+	if err != nil {
+		return nil, "", err
+	}
+
+	userIDStr := strconv.FormatInt(user.ID, 10)
+
+	accessToken, err := s.generateAccessToken(userIDStr, user.Username)
+	if err != nil {
+		return nil, "", err
+	}
+
+	newRefreshToken, err := util.GenerateRefreshToken()
+	if err != nil {
+		return nil, "", err
+	}
+
+	newTokenHash := util.HashToken(newRefreshToken)
+	if err := s.Repo.StoreRefreshToken(ctx, user.ID, newTokenHash); err != nil {
+		return nil, "", err
+	}
+
+	resp := &LoginUserRes{
+		AccessToken: accessToken,
+		ExpiresIn:   int(s.config.AccessTokenDuration.Seconds()),
+		User: UserInfo{
+			ID:       userIDStr,
+			Username: user.Username,
+			Email:    user.Email,
+		},
+	}
+	return resp, newRefreshToken, nil
+}
+
+// Helper method (doesnt fit in util package dont want circular dependency)
+func (s *service) generateAccessToken(userID, username string) (string, error) {
+	claims := JWTClaims{
+		ID:       userID,
+		Username: username,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(s.config.AccessTokenDuration)),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+		},
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString([]byte(s.config.JWTSecret))
 }

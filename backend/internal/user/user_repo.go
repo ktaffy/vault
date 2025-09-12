@@ -35,39 +35,46 @@ func (r *repo) CreateUser(ctx context.Context, user *User) (*User, error) {
 
 func (r *repo) GetUserByEmailOrUsername(ctx context.Context, identifier string) (*User, error) {
 	u := User{}
-
-	tx, err := r.db.BeginTx(ctx, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	defer func() {
-		if err != nil {
-			tx.Rollback()
-		}
-	}()
-
 	query := "SELECT id, email, username, password FROM users WHERE email = $1 OR username = $1"
-	err = r.db.QueryRowContext(ctx, query, identifier).Scan(
-		&u.ID,
-		&u.Email,
-		&u.Username,
-		&u.Password,
-	)
+	err := r.db.QueryRowContext(ctx, query, identifier).Scan(&u.ID, &u.Email, &u.Username, &u.Password)
 	if err != nil {
 		return nil, err
 	}
 
-	updateQuery := "UPDATE users SET last_login = $1 WHERE id = $2"
-	_, err = tx.ExecContext(ctx, updateQuery, time.Now(), u.ID)
-	if err != nil {
-		return nil, err
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		return nil, err
-	}
-
+	r.db.ExecContext(ctx, "UPDATE users SET last_login = NOW() WHERE id = $1", u.ID)
 	return &u, nil
+}
+
+// Repo Token Methods
+func (r *repo) StoreRefreshToken(ctx context.Context, userID int64, tokenHash string) error {
+	r.db.ExecContext(ctx, `
+		DELETE FROM refresh_tokens
+		WHERE user_id = $1 AND id NOT IN (
+			SELECT id FROM refresh_tokens
+			WHERE user_id = $1
+			ORDER BY last_used DESC
+			LIMIT 4
+		)`, userID)
+	query := `INSERT INTO refresh_tokens (user_id, token_hash, expires_at) 
+		VALUES ($1, $2, $3)`
+	_, err := r.db.ExecContext(ctx, query, userID, tokenHash, time.Now().Add(365*24*time.Hour))
+	return err
+}
+
+func (r *repo) ValidateRefreshToken(ctx context.Context, tokenHash string) (int64, error) {
+	var userID int64
+	query := `SELECT user_id FROM refresh_tokens WHERE token_hash = $1 AND expires_at > NOW()`
+	err := r.db.QueryRowContext(ctx, query, tokenHash).Scan(&userID)
+	if err != nil {
+		return 0, err
+	}
+	updateQuery := "UPDATE refresh_tokens SET last_used = NOW() WHERE token_hash = $1"
+	r.db.ExecContext(ctx, updateQuery, tokenHash)
+	return userID, nil
+}
+
+func (r *repo) RevokeUserTokens(ctx context.Context, userID int64) error {
+	query := "DELETE FROM refresh_tokens WHERE user_id = $1"
+	_, err := r.db.ExecContext(ctx, query, userID)
+	return err
 }
