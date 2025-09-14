@@ -13,14 +13,14 @@ end:
 server:
 	cd backend && go run cmd/main.go
 
-db-users:
-	docker exec -it vault-vault-1 psql -U vault -d vault -c "\d users"
+db-table:
+	docker exec -it vault-vault-1 psql -U vault -d vault -c "\d $(table)"
 
 postgres:
 	docker exec -it vault-vault-1 psql -U vault -d vault
 
-check-users:
-	docker exec -it vault-vault-1 psql -U vault -d vault -c "SELECT * FROM users;"
+check-table:
+	docker exec -it vault-vault-1 psql -U vault -d vault -c "SELECT * FROM $(table);"
 
 migrate-create:
 	migrate create -ext sql -dir $(MIGRATIONS_PATH) -seq $(name)
@@ -37,4 +37,4 @@ migrate-version:
 migrate-clean:
 	migrate -path $(MIGRATIONS_PATH) -database $(DB_URL) force $(version)
 
-.PHONY: setup end postgres migrate-create migrate-up migrate-down migrate-version migrate-clean server
+.PHONY: setup end postgres migrate-create migrate-up migrate-down migrate-version migrate-clean server db-table check-table
