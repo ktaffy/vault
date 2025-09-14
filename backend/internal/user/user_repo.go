@@ -3,6 +3,8 @@ package user
 import (
 	"context"
 	"database/sql"
+	"fmt"
+	"strings"
 	"time"
 )
 
@@ -43,6 +45,28 @@ func (r *repo) GetUserByEmailOrUsername(ctx context.Context, identifier string) 
 
 	r.db.ExecContext(ctx, "UPDATE users SET last_login = NOW() WHERE id = $1", u.ID)
 	return &u, nil
+}
+
+func (r *repo) UpdateUser(ctx context.Context, userID int64, updates map[string]interface{}) (*User, error) {
+	if len(updates) == 0 {
+		return nil, fmt.Errorf("no fields to update")
+	}
+	setParts := []string{}
+	args := []interface{}{}
+	argIndex := 1
+	for field, value := range updates {
+		setParts = append(setParts, fmt.Sprintf("%s = $%d", field, argIndex))
+		args = append(args, value)
+		argIndex++
+	}
+	query := fmt.Sprintf("UPDATE users SET %s WHERE id = $%d RETURNING id, username, email, profile_bio, pfp_url", strings.Join(setParts, ", "), argIndex)
+	args = append(args, userID)
+	u := &User{}
+	err := r.db.QueryRowContext(ctx, query, args...).Scan(&u.ID, &u.Username, &u.Email, &u.ProfileBio, &u.PfpUrl)
+	if err != nil {
+		return nil, err
+	}
+	return u, nil
 }
 
 // Repo Token Methods

@@ -4,7 +4,15 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
+
+	"github.com/golang-jwt/jwt/v4"
 )
+
+type JWTClaims struct {
+	ID       string `json:"id"`
+	Username string `json:"username"`
+	jwt.RegisteredClaims
+}
 
 func GenerateRefreshToken() (string, error) {
 	bytes := make([]byte, 32)

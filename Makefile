@@ -10,6 +10,9 @@ setup:
 end:
 	docker compose down
 
+server:
+	cd backend && go run cmd/main.go
+
 db-users:
 	docker exec -it vault-vault-1 psql -U vault -d vault -c "\d users"
 
@@ -34,4 +37,4 @@ migrate-version:
 migrate-clean:
 	migrate -path $(MIGRATIONS_PATH) -database $(DB_URL) force $(version)
 
-.PHONY: setup end postgres migrate-create migrate-up migrate-down migrate-version migrate-clean
+.PHONY: setup end postgres migrate-create migrate-up migrate-down migrate-version migrate-clean server

@@ -68,3 +68,22 @@ func (h *Handler) Logout(c *gin.Context) {
 	c.SetCookie("refresh_token", "", -1, "/", h.config.CookieDomain, h.config.CookieSecure, true)
 	c.JSON(http.StatusOK, gin.H{"message": "logged out successfully"})
 }
+
+func (h *Handler) UpdateProfile(c *gin.Context) {
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+	var req UpdateProfileReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	resp, err := h.Service.UpdateProfile(c.Request.Context(), userID.(int64), &req)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, resp)
+}

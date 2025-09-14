@@ -2,6 +2,7 @@ package user
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 	"time"
 
@@ -14,12 +15,6 @@ type service struct {
 	Repo
 	config  *config.Config
 	timeOut time.Duration
-}
-
-type JWTClaims struct {
-	ID       string `json:"id"`
-	Username string `json:"username"`
-	jwt.RegisteredClaims
 }
 
 func NewService(repo Repo) Service {
@@ -125,6 +120,60 @@ func (s *service) Logout(c context.Context, refreshToken string) error {
 	return s.Repo.RevokeUserTokens(ctx, userID)
 }
 
+func (s *service) UpdateProfile(c context.Context, userID int64, req *UpdateProfileReq) (*UpdateProfileRes, error) {
+	ctx, cancel := context.WithTimeout(c, s.timeOut)
+	defer cancel()
+
+	updates := make(map[string]interface{})
+
+	if req.Username != "" {
+		if len(req.Username) < 3 || len(req.Username) > 50 {
+			return nil, fmt.Errorf("username must be between 3-50 characters")
+		}
+		updates["username"] = req.Username
+	}
+
+	if req.Email != "" {
+		cleanEmail, err := util.SanitizeEmail(req.Email)
+		if err != nil {
+			return nil, err
+		}
+		updates["email"] = cleanEmail
+		updates["email_verified"] = false // reset status on email change
+	}
+
+	if req.ProfileBio != "" {
+		if len(req.ProfileBio) > 500 {
+			return nil, fmt.Errorf("bio too long (max 500 characters)")
+		}
+		updates["profile_bio"] = req.ProfileBio
+	}
+
+	if req.PfpUrl != "" {
+		updates["pfp_url"] = req.PfpUrl
+	}
+
+	if len(updates) == 0 {
+		return nil, fmt.Errorf("no fields to update")
+	}
+
+	updatedUser, err := s.Repo.UpdateUser(ctx, userID, updates)
+	if err != nil {
+		return nil, err
+	}
+
+	res := &UpdateProfileRes{
+		Message: "Profile updated successfully",
+		User: UserInfo{
+			ID:       strconv.Itoa(int(updatedUser.ID)),
+			Username: updatedUser.Username,
+			Email:    updatedUser.Email,
+		},
+	}
+
+	return res, nil
+}
+
 func (s *service) RefreshAccess(c context.Context, refreshToken string) (*LoginUserRes, string, error) {
 	ctx, cancel := context.WithTimeout(c, s.timeOut)
 	defer cancel()
@@ -171,7 +220,7 @@ func (s *service) RefreshAccess(c context.Context, refreshToken string) (*LoginU
 
 // Helper method (doesnt fit in util package dont want circular dependency)
 func (s *service) generateAccessToken(userID, username string) (string, error) {
-	claims := JWTClaims{
+	claims := util.JWTClaims{
 		ID:       userID,
 		Username: username,
 		RegisteredClaims: jwt.RegisteredClaims{
