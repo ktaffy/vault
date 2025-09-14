@@ -22,6 +22,13 @@ type Config struct {
 
 	RefreshTokenDuration    time.Duration
 	MaxRefreshTokensPerUser int
+
+	EmailVerificationDuration time.Duration
+	SMTPHost                  string
+	SMTPPort                  int
+	SMTPUsername              string
+	SMTPPassword              string
+	FromEmail                 string
 }
 
 func Load() *Config {
@@ -41,6 +48,13 @@ func Load() *Config {
 
 		RefreshTokenDuration:    parseDuration(getEnv("REFRESH_TOKEN_DURATION")),
 		MaxRefreshTokensPerUser: parseInt(getEnv("MAX_REFRESH_TOKENS_PER_USER")),
+
+		EmailVerificationDuration: parseDuration(getEnv("EMAIL_VERIFICATION_DURATION")),
+		SMTPHost:                  getEnv("SMTP_HOST"),
+		SMTPPort:                  parseInt(getEnv("SMTP_PORT")),
+		SMTPUsername:              getEnv("SMTP_USERNAME"),
+		SMTPPassword:              getEnv("SMTP_PASSWORD"),
+		FromEmail:                 getEnv("FROM_EMAIL"),
 	}
 }
 
