@@ -34,18 +34,6 @@ func (h *Handler) CreateUser(c *gin.Context) {
 }
 
 func (h *Handler) Login(c *gin.Context) {
-	if refresh_token, err := c.Cookie("refresh_token"); err == nil && refresh_token != "" {
-		resp, newRefreshToken, err := h.Service.RefreshAccess(c.Request.Context(), refresh_token)
-		if err != nil {
-			c.SetCookie("refresh_token", "", -1, "/", h.config.CookieDomain, h.config.CookieSecure, true)
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Session expired, please log in again"})
-			return
-		}
-		maxAge := int(h.config.RefreshTokenDuration.Seconds())
-		c.SetCookie("refresh_token", newRefreshToken, maxAge, "/", h.config.CookieDomain, h.config.CookieSecure, true)
-		c.JSON(http.StatusOK, resp)
-		return
-	}
 	var req LoginUserReq
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -85,5 +73,35 @@ func (h *Handler) UpdateProfile(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	c.JSON(http.StatusOK, resp)
+}
+
+func (h *Handler) ToggleArtist(c *gin.Context) {
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+	resp, err := h.Service.ToggleArtist(c.Request.Context(), userID.(int64))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, resp)
+}
+
+func (h *Handler) RefreshToken(c *gin.Context) {
+	refreshToken, err := c.Cookie("refresh_token")
+	if err != nil || refreshToken == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "no refresh token"})
+		return
+	}
+	resp, newRefreshToken, err := h.Service.RefreshAccess(c.Request.Context(), refreshToken)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid refresh token"})
+		return
+	}
+	maxAge := int(h.config.RefreshTokenDuration.Seconds())
+	c.SetCookie("refresh_token", newRefreshToken, maxAge, "/", h.config.CookieDomain, h.config.CookieSecure, true)
 	c.JSON(http.StatusOK, resp)
 }

@@ -53,6 +53,10 @@ type UpdateProfileRes struct {
 	User    UserInfo `json:"user"`
 }
 
+type UpdateArtistRes struct {
+	Message string `json:"message"`
+}
+
 type Repo interface {
 	CreateUser(ctx context.Context, user *User) (*User, error)
 	GetUserByEmailOrUsername(ctx context.Context, identifier string) (*User, error)
@@ -60,6 +64,8 @@ type Repo interface {
 	ValidateRefreshToken(ctx context.Context, tokenHash string) (int64, error)
 	RevokeUserTokens(ctx context.Context, userID int64) error
 	UpdateUser(ctx context.Context, userID int64, updates map[string]interface{}) (*User, error)
+	ToggleArtist(ctx context.Context, userID int64) error
+	GetUserByID(ctx context.Context, userID int64) (*User, error)
 }
 
 type Service interface {
@@ -68,4 +74,5 @@ type Service interface {
 	RefreshAccess(c context.Context, refreshToken string) (*LoginUserRes, string, error)
 	Logout(c context.Context, refreshToken string) error
 	UpdateProfile(c context.Context, userID int64, req *UpdateProfileReq) (*UpdateProfileRes, error)
+	ToggleArtist(c context.Context, userID int64) (*UpdateArtistRes, error)
 }

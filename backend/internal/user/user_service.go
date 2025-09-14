@@ -184,7 +184,7 @@ func (s *service) RefreshAccess(c context.Context, refreshToken string) (*LoginU
 		return nil, "", err
 	}
 
-	user, err := s.Repo.GetUserByEmailOrUsername(ctx, strconv.FormatInt(userID, 10))
+	user, err := s.Repo.GetUserByID(ctx, userID)
 	if err != nil {
 		return nil, "", err
 	}
@@ -216,6 +216,19 @@ func (s *service) RefreshAccess(c context.Context, refreshToken string) (*LoginU
 		},
 	}
 	return resp, newRefreshToken, nil
+}
+
+func (s *service) ToggleArtist(c context.Context, userID int64) (*UpdateArtistRes, error) {
+	ctx, cancel := context.WithTimeout(c, s.timeOut)
+	defer cancel()
+	err := s.Repo.ToggleArtist(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	res := &UpdateArtistRes{
+		Message: "Artist mode toggled successfully",
+	}
+	return res, nil
 }
 
 // Helper method (doesnt fit in util package dont want circular dependency)

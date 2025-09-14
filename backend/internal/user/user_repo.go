@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"github.com/ktaffy/vault/backend/config"
 )
 
 type DBTX interface {
@@ -17,11 +19,12 @@ type DBTX interface {
 }
 
 type repo struct {
-	db DBTX
+	db     DBTX
+	config *config.Config
 }
 
 func NewRepo(db DBTX) Repo {
-	return &repo{db: db}
+	return &repo{db: db, config: config.Load()}
 }
 
 func (r *repo) CreateUser(ctx context.Context, user *User) (*User, error) {
@@ -33,6 +36,16 @@ func (r *repo) CreateUser(ctx context.Context, user *User) (*User, error) {
 	}
 	user.ID = int64(lastInsertId)
 	return user, nil
+}
+
+func (r *repo) GetUserByID(ctx context.Context, userID int64) (*User, error) {
+	u := User{}
+	query := "SELECT id, email, username, password FROM users WHERE id = $1"
+	err := r.db.QueryRowContext(ctx, query, userID).Scan(&u.ID, &u.Email, &u.Username, &u.Password)
+	if err != nil {
+		return nil, err
+	}
+	return &u, nil
 }
 
 func (r *repo) GetUserByEmailOrUsername(ctx context.Context, identifier string) (*User, error) {
@@ -69,6 +82,15 @@ func (r *repo) UpdateUser(ctx context.Context, userID int64, updates map[string]
 	return u, nil
 }
 
+func (r *repo) ToggleArtist(ctx context.Context, userID int64) error {
+	query := `UPDATE users SET is_artist = NOT is_artist WHERE id = $1`
+	_, err := r.db.ExecContext(ctx, query, userID)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // Repo Token Methods
 func (r *repo) StoreRefreshToken(ctx context.Context, userID int64, tokenHash string) error {
 	r.db.ExecContext(ctx, `
@@ -81,7 +103,7 @@ func (r *repo) StoreRefreshToken(ctx context.Context, userID int64, tokenHash st
 		)`, userID)
 	query := `INSERT INTO refresh_tokens (user_id, token_hash, expires_at) 
 		VALUES ($1, $2, $3)`
-	_, err := r.db.ExecContext(ctx, query, userID, tokenHash, time.Now().Add(365*24*time.Hour))
+	_, err := r.db.ExecContext(ctx, query, userID, tokenHash, time.Now().Add(r.config.RefreshTokenDuration))
 	return err
 }
 

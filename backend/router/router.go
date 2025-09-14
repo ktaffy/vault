@@ -14,10 +14,12 @@ func InitRouter(userHandler *user.Handler) {
 	// Public Routes
 	r.POST("/signup", userHandler.CreateUser)
 	r.POST("/login", userHandler.Login)
+	r.POST("/refresh", userHandler.RefreshToken)
 	r.GET("/logout", userHandler.Logout)
 
 	// Protected Routes
 	r.PUT("/update-profile", middleware.JWTAuth(), userHandler.UpdateProfile)
+	r.PUT("/toggle-artist", middleware.JWTAuth(), userHandler.ToggleArtist)
 }
 
 func Start(addr string) error {
