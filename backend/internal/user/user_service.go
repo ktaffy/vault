@@ -274,6 +274,60 @@ func (s *service) ResendVerificationEmail(c context.Context, userID int64) error
 	return s.SendVerificationEmail(c, userID)
 }
 
+func (s *service) RequestPasswordReset(c context.Context, email string) error {
+	ctx, cancel := context.WithTimeout(c, s.timeOut)
+	defer cancel()
+
+	cleanEmail, err := util.SanitizeEmail(email)
+	if err != nil {
+		return err
+	}
+
+	user, err := s.Repo.GetUserByEmail(ctx, cleanEmail)
+	if err != nil {
+		return nil
+	}
+
+	token, err := util.GenerateRefreshToken()
+	if err != nil {
+		return err
+	}
+
+	tokenHash := util.HashToken(token)
+	if err := s.Repo.StorePasswordToken(ctx, user.ID, tokenHash); err != nil {
+		return err
+	}
+
+	return s.sendPasswordResetEmail(user.Email, token)
+}
+
+func (s *service) ResetPassword(c context.Context, token, newPassword string) error {
+	ctx, cancel := context.WithTimeout(c, s.timeOut)
+	defer cancel()
+
+	cleanPassword, err := util.SanitizePassword(newPassword)
+	if err != nil {
+		return err
+	}
+
+	hashPass, err := util.HashPassword(cleanPassword)
+	if err != nil {
+		return err
+	}
+
+	tokenHash := util.HashToken(token)
+	userID, err := s.Repo.ValidatePasswordToken(ctx, tokenHash)
+	if err != nil {
+		return err
+	}
+
+	if err := s.Repo.UpdatePassword(ctx, userID, hashPass); err != nil {
+		return err
+	}
+
+	return s.Repo.RevokeUserTokens(ctx, userID)
+}
+
 // Helper methods (doesnt fit in util package dont want circular dependency)
 func (s *service) generateAccessToken(userID, username string) (string, error) {
 	claims := util.JWTClaims{
@@ -302,5 +356,28 @@ func (s *service) sendEmail(email, token string) error {
 	msg := fmt.Sprintf("From: %s\r\nTo: %s\r\nSubject: %s\r\nContent-Type: text/html\r\n\r\n%s", from, email, subject, body)
 	auth := smtp.PlainAuth("", s.config.SMTPUsername, password, s.config.SMTPHost)
 	addr := fmt.Sprintf("%s:%d", s.config.SMTPHost, s.config.SMTPPort)
+	return smtp.SendMail(addr, auth, from, []string{email}, []byte(msg))
+}
+
+func (s *service) sendPasswordResetEmail(email, token string) error {
+	url := fmt.Sprintf("http://localhost:3000/reset-password?token=%s", token) // Change in production
+
+	subject := "Reset your Vault password"
+	body := fmt.Sprintf(`
+		<h2>Password Reset Request</h2>
+		<p>You requested to reset your password. Click the link below:</p>
+		<a href="%s">Reset Password</a>
+		<p>This link will expire in 24 hours.</p>
+		<p>If you didn't request this, ignore this email.</p>
+	`, url)
+
+	from := s.config.FromEmail
+	password := s.config.SMTPPassword
+
+	msg := fmt.Sprintf("From: %s\r\nTo: %s\r\nSubject: %s\r\nContent-Type: text/html\r\n\r\n%s", from, email, subject, body)
+
+	auth := smtp.PlainAuth("", s.config.SMTPUsername, password, s.config.SMTPHost)
+	addr := fmt.Sprintf("%s:%d", s.config.SMTPHost, s.config.SMTPPort)
+
 	return smtp.SendMail(addr, auth, from, []string{email}, []byte(msg))
 }

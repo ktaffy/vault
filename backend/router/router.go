@@ -17,6 +17,8 @@ func InitRouter(userHandler *user.Handler) {
 	r.POST("/refresh", userHandler.RefreshToken)
 	r.GET("/logout", userHandler.Logout)
 	r.POST("/verify-email", userHandler.VerifyEmail)
+	r.POST("/forgot-password", userHandler.ForgotPassword)
+	r.POST("/reset-password", userHandler.ResetPassword)
 
 	// Protected Routes
 	r.PUT("/update-profile", middleware.JWTAuth(), userHandler.UpdateProfile)

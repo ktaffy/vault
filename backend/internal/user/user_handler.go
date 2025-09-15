@@ -133,3 +133,30 @@ func (h *Handler) ResendVerification(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "verification email sent"})
 }
+
+func (h *Handler) ForgotPassword(c *gin.Context) {
+	var req ForgotPasswordReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	err := h.Service.RequestPasswordReset(c.Request.Context(), req.Email)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "if email exists, a reset link has been sent"})
+}
+
+func (h *Handler) ResetPassword(c *gin.Context) {
+	var req ResetPasswordReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	err := h.Service.ResetPassword(c.Request.Context(), req.Token, req.NewPassword)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "password reset successfully"})
+}

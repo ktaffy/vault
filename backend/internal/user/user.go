@@ -61,18 +61,36 @@ type VerifyEmailReq struct {
 	Token string `json:"token"`
 }
 
+type ForgotPasswordReq struct {
+	Email string `json:"email"`
+}
+
+type ResetPasswordReq struct {
+	Token       string `json:"token"`
+	NewPassword string `json:"new_password"`
+}
+
 type Repo interface {
 	CreateUser(ctx context.Context, user *User) (*User, error)
+
+	GetUserByID(ctx context.Context, userID int64) (*User, error)
 	GetUserByEmailOrUsername(ctx context.Context, identifier string) (*User, error)
+	GetUserByEmail(ctx context.Context, email string) (*User, error)
+
 	StoreRefreshToken(ctx context.Context, userID int64, tokenHash string) error
 	ValidateRefreshToken(ctx context.Context, tokenHash string) (int64, error)
 	RevokeUserTokens(ctx context.Context, userID int64) error
+
 	UpdateUser(ctx context.Context, userID int64, updates map[string]interface{}) (*User, error)
 	ToggleArtist(ctx context.Context, userID int64) error
-	GetUserByID(ctx context.Context, userID int64) (*User, error)
+
 	StoreEmailToken(ctx context.Context, userID int64, tokenHash string) error
 	ValidateEmailToken(ctx context.Context, tokenHash string) (int64, error)
 	MarkEmailVerified(ctx context.Context, userID int64) error
+
+	StorePasswordToken(ctx context.Context, userID int64, tokenHash string) error
+	ValidatePasswordToken(ctx context.Context, tokenHash string) (int64, error)
+	UpdatePassword(ctx context.Context, userID int64, newPassword string) error
 }
 
 type Service interface {
@@ -85,4 +103,6 @@ type Service interface {
 	SendVerificationEmail(c context.Context, userID int64) error
 	VerifyEmail(c context.Context, token string) error
 	ResendVerificationEmail(c context.Context, userID int64) error
+	RequestPasswordReset(c context.Context, email string) error
+	ResetPassword(c context.Context, token, newPassword string) error
 }

@@ -27,6 +27,7 @@ func NewRepo(db DBTX) Repo {
 	return &repo{db: db, config: config.Load()}
 }
 
+// Get User functions
 func (r *repo) CreateUser(ctx context.Context, user *User) (*User, error) {
 	var lastInsertId int
 	query := "INSERT INTO users(username, password, email) VALUES ($1, $2, $3) returning id"
@@ -48,6 +49,16 @@ func (r *repo) GetUserByID(ctx context.Context, userID int64) (*User, error) {
 	return &u, nil
 }
 
+func (r *repo) GetUserByEmail(ctx context.Context, email string) (*User, error) {
+	u := User{}
+	query := "SELECT id, email, username FROM users WHERE email = $1"
+	err := r.db.QueryRowContext(ctx, query, email).Scan(&u.ID, &u.Email, &u.Username)
+	if err != nil {
+		return nil, err
+	}
+	return &u, nil
+}
+
 func (r *repo) GetUserByEmailOrUsername(ctx context.Context, identifier string) (*User, error) {
 	u := User{}
 	query := "SELECT id, email, username, password FROM users WHERE email = $1 OR username = $1"
@@ -60,6 +71,7 @@ func (r *repo) GetUserByEmailOrUsername(ctx context.Context, identifier string) 
 	return &u, nil
 }
 
+// Update User functions
 func (r *repo) UpdateUser(ctx context.Context, userID int64, updates map[string]interface{}) (*User, error) {
 	if len(updates) == 0 {
 		return nil, fmt.Errorf("no fields to update")
@@ -157,4 +169,36 @@ func (r *repo) MarkEmailVerified(ctx context.Context, userID int64) error {
 		return err
 	}
 	return nil
+}
+
+// Password reset methods
+func (r *repo) StorePasswordToken(ctx context.Context, userID int64, tokenHash string) error {
+	r.db.ExecContext(ctx, "UPDATE password_tokens SET is_used = TRUE WHERE user_id = $1", userID)
+	query := `INSERT INTO password_tokens (user_id, token_hash, expires_at) VALUES ($1, $2, $3)`
+	_, err := r.db.ExecContext(ctx, query, userID, tokenHash, time.Now().Add(r.config.EmailVerificationDuration))
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r *repo) ValidatePasswordToken(ctx context.Context, tokenHash string) (int64, error) {
+	var userID int64
+	query := `SELECT user_id FROM password_tokens 
+        WHERE token_hash = $1 AND expires_at > NOW() AND is_used = FALSE`
+	err := r.db.QueryRowContext(ctx, query, tokenHash).Scan(&userID)
+	if err != nil {
+		return 0, err
+	}
+
+	updateQuery := "UPDATE password_tokens SET is_used = TRUE WHERE token_hash = $1"
+	r.db.ExecContext(ctx, updateQuery, tokenHash)
+
+	return userID, nil
+}
+
+func (r *repo) UpdatePassword(ctx context.Context, userID int64, newPassword string) error {
+	query := "UPDATE users SET password = $1 WHERE id = $2"
+	_, err := r.db.ExecContext(ctx, query, newPassword, userID)
+	return err
 }
