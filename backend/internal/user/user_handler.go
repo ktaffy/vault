@@ -105,3 +105,31 @@ func (h *Handler) RefreshToken(c *gin.Context) {
 	c.SetCookie("refresh_token", newRefreshToken, maxAge, "/", h.config.CookieDomain, h.config.CookieSecure, true)
 	c.JSON(http.StatusOK, resp)
 }
+
+func (h *Handler) VerifyEmail(c *gin.Context) {
+	var req VerifyEmailReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	err := h.Service.VerifyEmail(c.Request.Context(), req.Token)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message:": "Email verified successfully"})
+}
+
+func (h *Handler) ResendVerification(c *gin.Context) {
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+	err := h.Service.ResendVerificationEmail(c.Request.Context(), userID.(int64))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to send verification email"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "verification email sent"})
+}

@@ -3,6 +3,7 @@ package user
 import (
 	"context"
 	"fmt"
+	"net/smtp"
 	"strconv"
 	"time"
 
@@ -53,6 +54,12 @@ func (s *service) CreateUser(c context.Context, req *CreateUserReq) (*CreateUser
 	if err != nil {
 		return nil, err
 	}
+
+	go func() {
+		if err := s.SendVerificationEmail(context.Background(), r.ID); err != nil {
+			fmt.Printf("Failed to send verification email: %v\n", err)
+		}
+	}()
 
 	res := &CreateUserRes{
 		ID:       strconv.Itoa(int(r.ID)),
@@ -231,7 +238,43 @@ func (s *service) ToggleArtist(c context.Context, userID int64) (*UpdateArtistRe
 	return res, nil
 }
 
-// Helper method (doesnt fit in util package dont want circular dependency)
+func (s *service) SendVerificationEmail(c context.Context, userID int64) error {
+	ctx, cancel := context.WithTimeout(c, s.timeOut)
+	defer cancel()
+
+	user, err := s.Repo.GetUserByID(ctx, userID)
+	if err != nil {
+		return err
+	}
+
+	token, err := util.GenerateRefreshToken()
+	if err != nil {
+		return err
+	}
+
+	tokenHash := util.HashToken(token)
+	if err := s.Repo.StoreEmailToken(ctx, userID, tokenHash); err != nil {
+		return err
+	}
+	return s.sendEmail(user.Email, token)
+}
+
+func (s *service) VerifyEmail(c context.Context, token string) error {
+	ctx, cancel := context.WithTimeout(c, s.timeOut)
+	defer cancel()
+	tokenHash := util.HashToken(token)
+	userID, err := s.Repo.ValidateEmailToken(ctx, tokenHash)
+	if err != nil {
+		return err
+	}
+	return s.Repo.MarkEmailVerified(ctx, userID)
+}
+
+func (s *service) ResendVerificationEmail(c context.Context, userID int64) error {
+	return s.SendVerificationEmail(c, userID)
+}
+
+// Helper methods (doesnt fit in util package dont want circular dependency)
 func (s *service) generateAccessToken(userID, username string) (string, error) {
 	claims := util.JWTClaims{
 		ID:       userID,
@@ -243,4 +286,21 @@ func (s *service) generateAccessToken(userID, username string) (string, error) {
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString([]byte(s.config.JWTSecret))
+}
+
+func (s *service) sendEmail(email, token string) error {
+	url := fmt.Sprintf("http://localhost:3000/verify-email?token=%s", token)
+	subject := "Verify your Vault account"
+	body := fmt.Sprintf(`
+		<h2>Welcome to Vault</h2>
+		<p>Click link to verify account</p>
+		<a href="%s">Verify Email</a>
+		<p>This link will expire in 24 hours.</p>
+	`, url)
+	from := s.config.FromEmail
+	password := s.config.SMTPPassword
+	msg := fmt.Sprintf("From: %s\r\nTo: %s\r\nSubject: %s\r\nContent-Type: text/html\r\n\r\n%s", from, email, subject, body)
+	auth := smtp.PlainAuth("", s.config.SMTPUsername, password, s.config.SMTPHost)
+	addr := fmt.Sprintf("%s:%d", s.config.SMTPHost, s.config.SMTPPort)
+	return smtp.SendMail(addr, auth, from, []string{email}, []byte(msg))
 }

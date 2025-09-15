@@ -57,6 +57,10 @@ type UpdateArtistRes struct {
 	Message string `json:"message"`
 }
 
+type VerifyEmailReq struct {
+	Token string `json:"token"`
+}
+
 type Repo interface {
 	CreateUser(ctx context.Context, user *User) (*User, error)
 	GetUserByEmailOrUsername(ctx context.Context, identifier string) (*User, error)
@@ -66,6 +70,9 @@ type Repo interface {
 	UpdateUser(ctx context.Context, userID int64, updates map[string]interface{}) (*User, error)
 	ToggleArtist(ctx context.Context, userID int64) error
 	GetUserByID(ctx context.Context, userID int64) (*User, error)
+	StoreEmailToken(ctx context.Context, userID int64, tokenHash string) error
+	ValidateEmailToken(ctx context.Context, tokenHash string) (int64, error)
+	MarkEmailVerified(ctx context.Context, userID int64) error
 }
 
 type Service interface {
@@ -75,4 +82,7 @@ type Service interface {
 	Logout(c context.Context, refreshToken string) error
 	UpdateProfile(c context.Context, userID int64, req *UpdateProfileReq) (*UpdateProfileRes, error)
 	ToggleArtist(c context.Context, userID int64) (*UpdateArtistRes, error)
+	SendVerificationEmail(c context.Context, userID int64) error
+	VerifyEmail(c context.Context, token string) error
+	ResendVerificationEmail(c context.Context, userID int64) error
 }

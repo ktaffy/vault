@@ -124,3 +124,37 @@ func (r *repo) RevokeUserTokens(ctx context.Context, userID int64) error {
 	_, err := r.db.ExecContext(ctx, query, userID)
 	return err
 }
+
+// Email verification methods
+func (r *repo) StoreEmailToken(ctx context.Context, userID int64, tokenHash string) error {
+	query := `INSERT INTO email_tokens (user_id, token_hash, expires_at) VALUES ($1, $2, $3)`
+	_, err := r.db.ExecContext(ctx, query, userID, tokenHash, time.Now().Add(r.config.EmailVerificationDuration))
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r *repo) ValidateEmailToken(ctx context.Context, tokenHash string) (int64, error) {
+	var userID int64
+	query := `SELECT user_id FROM email_tokens WHERE token_hash = $1 AND expires_at > NOW() AND is_used = FALSE`
+	err := r.db.QueryRowContext(ctx, query, tokenHash).Scan(&userID)
+	if err != nil {
+		return 0, err
+	}
+	updateQuery := `UPDATE email_tokens SET is_used = TRUE WHERE token_hash = $1`
+	_, err = r.db.ExecContext(ctx, updateQuery, tokenHash)
+	if err != nil {
+		return 0, err
+	}
+	return userID, nil
+}
+
+func (r *repo) MarkEmailVerified(ctx context.Context, userID int64) error {
+	query := "UPDATE users SET email_verified = TRUE WHERE id = $1"
+	_, err := r.db.ExecContext(ctx, query, userID)
+	if err != nil {
+		return err
+	}
+	return nil
+}
