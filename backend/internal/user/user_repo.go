@@ -41,7 +41,7 @@ func (r *repo) CreateUser(ctx context.Context, user *User) (*User, error) {
 
 func (r *repo) GetUserByID(ctx context.Context, userID int64) (*User, error) {
 	u := User{}
-	query := "SELECT id, email, username, password FROM users WHERE id = $1"
+	query := "SELECT id, email, username, password FROM users WHERE id = $1 AND is_active = TRUE"
 	err := r.db.QueryRowContext(ctx, query, userID).Scan(&u.ID, &u.Email, &u.Username, &u.Password)
 	if err != nil {
 		return nil, err
@@ -51,7 +51,7 @@ func (r *repo) GetUserByID(ctx context.Context, userID int64) (*User, error) {
 
 func (r *repo) GetUserByEmail(ctx context.Context, email string) (*User, error) {
 	u := User{}
-	query := "SELECT id, email, username FROM users WHERE email = $1"
+	query := "SELECT id, email, username FROM users WHERE email = $1 AND is_active = TRUE"
 	err := r.db.QueryRowContext(ctx, query, email).Scan(&u.ID, &u.Email, &u.Username)
 	if err != nil {
 		return nil, err
@@ -61,13 +61,33 @@ func (r *repo) GetUserByEmail(ctx context.Context, email string) (*User, error) 
 
 func (r *repo) GetUserByEmailOrUsername(ctx context.Context, identifier string) (*User, error) {
 	u := User{}
-	query := "SELECT id, email, username, password FROM users WHERE email = $1 OR username = $1"
+	query := "SELECT id, email, username, password FROM users WHERE email = $1 OR username = $1 AND is_active = TRUE"
 	err := r.db.QueryRowContext(ctx, query, identifier).Scan(&u.ID, &u.Email, &u.Username, &u.Password)
 	if err != nil {
 		return nil, err
 	}
 
 	r.db.ExecContext(ctx, "UPDATE users SET last_login = NOW() WHERE id = $1", u.ID)
+	return &u, nil
+}
+
+func (r *repo) GetInactiveUserByID(ctx context.Context, userID int64) (*User, error) {
+	u := User{}
+	query := "SELECT id, email, username, password, is_active FROM users WHERE id = $1"
+	err := r.db.QueryRowContext(ctx, query, userID).Scan(&u.ID, &u.Email, &u.Username, &u.Password, &u.IsActive)
+	if err != nil {
+		return nil, err
+	}
+	return &u, nil
+}
+
+func (r *repo) GetInactiveUserByEmailOrUsername(ctx context.Context, identifier string) (*User, error) {
+	u := User{}
+	query := "SELECT id, email, username, password FROM users WHERE (email = $1 OR username = $1) AND is_active = FALSE"
+	err := r.db.QueryRowContext(ctx, query, identifier).Scan(&u.ID, &u.Email, &u.Username, &u.Password)
+	if err != nil {
+		return nil, err
+	}
 	return &u, nil
 }
 
@@ -201,4 +221,32 @@ func (r *repo) UpdatePassword(ctx context.Context, userID int64, newPassword str
 	query := "UPDATE users SET password = $1 WHERE id = $2"
 	_, err := r.db.ExecContext(ctx, query, newPassword, userID)
 	return err
+}
+
+// Deactivate User methods
+func (r *repo) DeactivateUser(ctx context.Context, userID int64) error {
+	query := "UPDATE users SET is_active = FALSE WHERE id = $1"
+	_, err := r.db.ExecContext(ctx, query, userID)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r *repo) ReactivateUser(ctx context.Context, userID int64) error {
+	query := "UPDATE users SET is_active = TRUE WHERE id = $1"
+	_, err := r.db.ExecContext(ctx, query, userID)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r *repo) DeleteUser(ctx context.Context, userID int64) error {
+	query := "DELETE FROM users WHERE id = $1"
+	_, err := r.db.ExecContext(ctx, query, userID)
+	if err != nil {
+		return err
+	}
+	return nil
 }

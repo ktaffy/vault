@@ -328,6 +328,94 @@ func (s *service) ResetPassword(c context.Context, token, newPassword string) er
 	return s.Repo.RevokeUserTokens(ctx, userID)
 }
 
+func (s *service) DeactivateAccount(c context.Context, userID int64, password string) error {
+	ctx, cancel := context.WithTimeout(c, s.timeOut)
+	defer cancel()
+
+	user, err := s.Repo.GetInactiveUserByID(ctx, userID)
+	if err != nil {
+		return err
+	}
+
+	if err := util.CheckPassword(password, user.Password); err != nil {
+		return err
+	}
+
+	if err := s.Repo.DeactivateUser(ctx, userID); err != nil {
+		return err
+	}
+
+	return s.Repo.RevokeUserTokens(ctx, userID)
+}
+
+func (s *service) DeleteAccount(c context.Context, userID int64, password string) error {
+	ctx, cancel := context.WithTimeout(c, s.timeOut)
+	defer cancel()
+
+	user, err := s.Repo.GetInactiveUserByID(ctx, userID)
+	if err != nil {
+		return err
+	}
+
+	if err := util.CheckPassword(password, user.Password); err != nil {
+		return err
+	}
+
+	return s.Repo.DeleteUser(ctx, userID)
+}
+
+func (s *service) ReactivateAccount(c context.Context, email, password string) (*LoginUserRes, string, error) {
+	ctx, cancel := context.WithTimeout(c, s.timeOut)
+	defer cancel()
+
+	cleanEmail, err := util.SanitizeEmail(email)
+	if err != nil {
+		return nil, "", err
+	}
+
+	user, err := s.Repo.GetInactiveUserByEmailOrUsername(ctx, cleanEmail)
+	if err != nil {
+		return nil, "", err
+	}
+
+	if err := util.CheckPassword(password, user.Password); err != nil {
+		return nil, "", err
+	}
+
+	if err := s.Repo.ReactivateUser(ctx, user.ID); err != nil {
+		return nil, "", err
+	}
+
+	userIDStr := strconv.FormatInt(user.ID, 10)
+
+	accessToken, err := s.generateAccessToken(userIDStr, user.Username)
+	if err != nil {
+		return nil, "", err
+	}
+
+	refreshToken, err := util.GenerateRefreshToken()
+	if err != nil {
+		return nil, "", err
+	}
+
+	tokenHash := util.HashToken(refreshToken)
+	if err := s.Repo.StoreRefreshToken(ctx, user.ID, tokenHash); err != nil {
+		return nil, "", err
+	}
+
+	res := &LoginUserRes{
+		AccessToken: accessToken,
+		ExpiresIn:   int(s.config.AccessTokenDuration.Seconds()),
+		User: UserInfo{
+			ID:       userIDStr,
+			Username: user.Username,
+			Email:    user.Email,
+		},
+	}
+
+	return res, refreshToken, nil
+}
+
 // Helper methods (doesnt fit in util package dont want circular dependency)
 func (s *service) generateAccessToken(userID, username string) (string, error) {
 	claims := util.JWTClaims{

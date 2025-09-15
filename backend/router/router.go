@@ -19,11 +19,14 @@ func InitRouter(userHandler *user.Handler) {
 	r.POST("/verify-email", userHandler.VerifyEmail)
 	r.POST("/forgot-password", userHandler.ForgotPassword)
 	r.POST("/reset-password", userHandler.ResetPassword)
+	r.POST("/reactivate-account", userHandler.ReactivateAccount)
 
 	// Protected Routes
 	r.PUT("/update-profile", middleware.JWTAuth(), userHandler.UpdateProfile)
 	r.PUT("/toggle-artist", middleware.JWTAuth(), userHandler.ToggleArtist)
 	r.POST("/resend-verification", middleware.JWTAuth(), userHandler.ResendVerification)
+	r.POST("/deactivate-account", middleware.JWTAuth(), userHandler.DeactivateAccount)
+	r.DELETE("/delete-account", middleware.JWTAuth(), userHandler.DeleteAccount)
 }
 
 func Start(addr string) error {

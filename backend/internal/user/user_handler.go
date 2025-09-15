@@ -160,3 +160,63 @@ func (h *Handler) ResetPassword(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "password reset successfully"})
 }
+
+func (h *Handler) DeactivateAccount(c *gin.Context) {
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+	var req DeactivateAccountReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	err := h.Service.DeactivateAccount(c.Request.Context(), userID.(int64), req.Password)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	c.SetCookie("refresh_token", "", -1, "/", h.config.CookieDomain, h.config.CookieSecure, true)
+	c.JSON(http.StatusOK, gin.H{"message": "account deactivated successfully"})
+}
+
+func (h *Handler) DeleteAccount(c *gin.Context) {
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+	var req DeleteAccountReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if req.ConfirmDeletion != "DELETE" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Must confirm deletion by typing 'DELETE'"})
+		return
+	}
+	err := h.Service.DeleteAccount(c.Request.Context(), userID.(int64), req.Password)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	c.SetCookie("refresh_token", "", -1, "/", h.config.CookieDomain, h.config.CookieSecure, true)
+	c.JSON(http.StatusOK, gin.H{"message": "Account deleted permanently"})
+}
+
+func (h *Handler) ReactivateAccount(c *gin.Context) {
+	var req ReactivateAccountReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	resp, refreshToken, err := h.Service.ReactivateAccount(c.Request.Context(), req.Email, req.Password)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	maxAge := int(h.config.RefreshTokenDuration.Seconds())
+	c.SetCookie("refresh_token", refreshToken, maxAge, "/", h.config.CookieDomain, h.config.CookieSecure, true)
+	c.JSON(http.StatusOK, resp)
+}

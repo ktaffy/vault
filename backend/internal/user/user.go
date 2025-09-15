@@ -8,6 +8,7 @@ type User struct {
 	Email      string  `json:"email" db:"email"`
 	Password   string  `json:"password" db:"password"`
 	IsArtist   string  `json:"is_artist" db:"is_artist"`
+	IsActive   bool    `string:"is_active" db:"is_active"`
 	ProfileBio *string `json:"profile_bio" db:"profile_bio"`
 	PfpUrl     *string `json:"pfp_url" db:"pfp_url"`
 }
@@ -70,12 +71,28 @@ type ResetPasswordReq struct {
 	NewPassword string `json:"new_password"`
 }
 
+type DeactivateAccountReq struct {
+	Password string `json:"password"`
+}
+
+type DeleteAccountReq struct {
+	Password        string `json:"password"`
+	ConfirmDeletion string `json:"confirm_deletion"`
+}
+
+type ReactivateAccountReq struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
 type Repo interface {
 	CreateUser(ctx context.Context, user *User) (*User, error)
 
 	GetUserByID(ctx context.Context, userID int64) (*User, error)
 	GetUserByEmailOrUsername(ctx context.Context, identifier string) (*User, error)
 	GetUserByEmail(ctx context.Context, email string) (*User, error)
+	GetInactiveUserByID(ctx context.Context, userID int64) (*User, error)
+	GetInactiveUserByEmailOrUsername(ctx context.Context, identifier string) (*User, error)
 
 	StoreRefreshToken(ctx context.Context, userID int64, tokenHash string) error
 	ValidateRefreshToken(ctx context.Context, tokenHash string) (int64, error)
@@ -91,6 +108,10 @@ type Repo interface {
 	StorePasswordToken(ctx context.Context, userID int64, tokenHash string) error
 	ValidatePasswordToken(ctx context.Context, tokenHash string) (int64, error)
 	UpdatePassword(ctx context.Context, userID int64, newPassword string) error
+
+	DeactivateUser(ctx context.Context, userID int64) error
+	ReactivateUser(ctx context.Context, userID int64) error
+	DeleteUser(ctx context.Context, userID int64) error
 }
 
 type Service interface {
@@ -105,4 +126,7 @@ type Service interface {
 	ResendVerificationEmail(c context.Context, userID int64) error
 	RequestPasswordReset(c context.Context, email string) error
 	ResetPassword(c context.Context, token, newPassword string) error
+	DeactivateAccount(c context.Context, userID int64, password string) error
+	DeleteAccount(c context.Context, userID int64, password string) error
+	ReactivateAccount(c context.Context, email, password string) (*LoginUserRes, string, error)
 }
