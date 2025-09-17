@@ -104,10 +104,10 @@ func (r *repo) UpdateUser(ctx context.Context, userID int64, updates map[string]
 		args = append(args, value)
 		argIndex++
 	}
-	query := fmt.Sprintf("UPDATE users SET %s WHERE id = $%d RETURNING id, username, email, profile_bio, pfp_url", strings.Join(setParts, ", "), argIndex)
+	query := fmt.Sprintf("UPDATE users SET %s WHERE id = $%d RETURNING id, username, email", strings.Join(setParts, ", "), argIndex)
 	args = append(args, userID)
 	u := &User{}
-	err := r.db.QueryRowContext(ctx, query, args...).Scan(&u.ID, &u.Username, &u.Email, &u.ProfileBio, &u.PfpUrl)
+	err := r.db.QueryRowContext(ctx, query, args...).Scan(&u.ID, &u.Username, &u.Email)
 	if err != nil {
 		return nil, err
 	}

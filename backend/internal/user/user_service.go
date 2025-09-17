@@ -149,17 +149,6 @@ func (s *service) UpdateProfile(c context.Context, userID int64, req *UpdateProf
 		updates["email_verified"] = false // reset status on email change
 	}
 
-	if req.ProfileBio != "" {
-		if len(req.ProfileBio) > 500 {
-			return nil, fmt.Errorf("bio too long (max 500 characters)")
-		}
-		updates["profile_bio"] = req.ProfileBio
-	}
-
-	if req.PfpUrl != "" {
-		updates["pfp_url"] = req.PfpUrl
-	}
-
 	if len(updates) == 0 {
 		return nil, fmt.Errorf("no fields to update")
 	}
