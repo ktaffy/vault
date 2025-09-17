@@ -1,229 +1,237 @@
-# POSSIBLE DB SCHEMA WILL BE ADJUSTED AS FEATURES GET DONE
+# <span style="color: #9478e9ff;">Vault</span> Complete DB Schema
+## 8 Tables Total
 
-```
--- CORE USER MANAGEMENT
+```sql
+-- 1. USERS (Artists and Listeners combined)
 CREATE TABLE users (
     id SERIAL PRIMARY KEY,
     username VARCHAR(50) UNIQUE NOT NULL,
     email VARCHAR(255) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL,
-    is_artist BOOLEAN DEFAULT FALSE,
-    global_rep_score INTEGER DEFAULT 0,
+    is_artist BOOLEAN DEFAULT FALSE, -- becomes true after first upload
     email_verified BOOLEAN DEFAULT FALSE,
-    profile_bio TEXT,
-    profile_picture_url VARCHAR(500),
     date_created TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     last_login TIMESTAMP NULL,
     is_active BOOLEAN DEFAULT TRUE
 );
-```
 
-```
--- COMMUNITIES (Artist-owned groups)
-CREATE TABLE communities (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
-    description TEXT,
-    owner_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-    access_type VARCHAR(20) CHECK (access_type IN ('open', 'invite_only', 'application')) DEFAULT 'open',
-    is_paid BOOLEAN DEFAULT FALSE,
-    price DECIMAL(10,2) DEFAULT 0.00,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    is_active BOOLEAN DEFAULT TRUE
-);
-```
-```
--- COMMUNITY MEMBERSHIP
-CREATE TABLE community_members (
-    id SERIAL PRIMARY KEY,
-    community_id INTEGER REFERENCES communities(id) ON DELETE CASCADE,
-    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-    role VARCHAR(20) CHECK (role IN ('member', 'moderator', 'owner')) DEFAULT 'member',
-    rep_score INTEGER DEFAULT 0,
-    joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    is_active BOOLEAN DEFAULT TRUE,
-    UNIQUE(community_id, user_id)
-);
-```
-```
--- COMMUNITY TAGS (Created by artists/mods)
-CREATE TABLE community_tags (
-    id SERIAL PRIMARY KEY,
-    community_id INTEGER REFERENCES communities(id) ON DELETE CASCADE,
-    tag_name VARCHAR(100) NOT NULL,
-    tag_color VARCHAR(7), -- Hex color code
-    created_by INTEGER REFERENCES users(id),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(community_id, tag_name)
-);
-```
-```
--- TAG PERMISSIONS (Who can use which tags)
-CREATE TABLE tag_permissions (
-    id SERIAL PRIMARY KEY,
-    tag_id INTEGER REFERENCES community_tags(id) ON DELETE CASCADE,
-    role VARCHAR(20) CHECK (role IN ('member', 'moderator', 'owner', 'artist_only')),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-```
-```
--- POSTS
-CREATE TABLE posts (
-    id SERIAL PRIMARY KEY,
-    community_id INTEGER REFERENCES communities(id) ON DELETE CASCADE,
-    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-    tag_id INTEGER REFERENCES community_tags(id),
-    title VARCHAR(500),
-    content TEXT,
-    post_type VARCHAR(20) CHECK (post_type IN ('text', 'image', 'video', 'audio', 'mixed', 'snippet')) NOT NULL,
-    media_urls TEXT[], -- Array of media URLs
-    upvotes INTEGER DEFAULT 0,
-    downvotes INTEGER DEFAULT 0,
-    reply_count INTEGER DEFAULT 0,
-    visibility_score INTEGER DEFAULT 0, -- Calculated field for feed algorithm
-    requires_approval BOOLEAN DEFAULT FALSE,
-    is_approved BOOLEAN DEFAULT TRUE,
-    is_pinned BOOLEAN DEFAULT FALSE, -- For community champions
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-```
-```
--- POST REACTIONS (Upvotes, Downvotes)
-CREATE TABLE post_reactions (
-    id SERIAL PRIMARY KEY,
-    post_id INTEGER REFERENCES posts(id) ON DELETE CASCADE,
-    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-    reaction_type VARCHAR(10) CHECK (reaction_type IN ('upvote', 'downvote')) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(post_id, user_id)
-);
-```
-```
--- POST REPLIES
-CREATE TABLE post_replies (
-    id SERIAL PRIMARY KEY,
-    post_id INTEGER REFERENCES posts(id) ON DELETE CASCADE,
-    parent_reply_id INTEGER REFERENCES post_replies(id), -- For nested replies
-    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-    content TEXT NOT NULL,
-    upvotes INTEGER DEFAULT 0,
-    downvotes INTEGER DEFAULT 0,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-```
-```
--- EVENTS
-CREATE TABLE events (
-    id SERIAL PRIMARY KEY,
-    community_id INTEGER REFERENCES communities(id) ON DELETE CASCADE,
-    created_by INTEGER REFERENCES users(id),
-    event_type VARCHAR(30) CHECK (event_type IN ('listening_party', 'beat_battle', 'cover_art_challenge', 'random_call')) NOT NULL,
-    title VARCHAR(255) NOT NULL,
-    description TEXT,
-    start_time TIMESTAMP NOT NULL,
-    end_time TIMESTAMP,
-    max_participants INTEGER,
-    rep_distribution_rules JSONB, -- Flexible rules storage
-    is_active BOOLEAN DEFAULT TRUE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-```
-```
--- EVENT PARTICIPANTS
-CREATE TABLE event_participants (
-    id SERIAL PRIMARY KEY,
-    event_id INTEGER REFERENCES events(id) ON DELETE CASCADE,
-    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-    participation_time INTEGER DEFAULT 0, -- In minutes
-    rep_earned INTEGER DEFAULT 0,
-    submission_url VARCHAR(500), -- For beat battles, art challenges
-    joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(event_id, user_id)
-);
-```
-```
--- MUSIC SNIPPETS (Artist uploads)
-CREATE TABLE music_snippets (
-    id SERIAL PRIMARY KEY,
-    post_id INTEGER REFERENCES posts(id) ON DELETE CASCADE,
-    artist_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-    title VARCHAR(255) NOT NULL,
-    audio_url VARCHAR(500) NOT NULL,
-    duration INTEGER, -- In seconds
-    genre VARCHAR(100),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-```
-```
--- USER LISTENING HISTORY (For recommendations)
-CREATE TABLE listening_history (
-    id SERIAL PRIMARY KEY,
-    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-    snippet_id INTEGER REFERENCES music_snippets(id) ON DELETE CASCADE,
-    listen_duration INTEGER, -- How long they listened in seconds
-    listened_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-```
-```
--- RECOMMENDATIONS
-CREATE TABLE recommendations (
-    id SERIAL PRIMARY KEY,
-    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-    recommended_artist_id INTEGER REFERENCES users(id),
-    recommended_community_id INTEGER REFERENCES communities(id),
-    recommendation_score DECIMAL(5,2),
-    recommendation_type VARCHAR(20) CHECK (recommendation_type IN ('artist', 'community', 'snippet')),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-```
-```
--- COMMUNITY INVITES
-CREATE TABLE community_invites (
-    id SERIAL PRIMARY KEY,
-    community_id INTEGER REFERENCES communities(id) ON DELETE CASCADE,
-    invited_by INTEGER REFERENCES users(id) ON DELETE CASCADE,
-    invited_user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-    invite_code VARCHAR(50) UNIQUE,
-    expires_at TIMESTAMP,
-    is_used BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-```
-```
--- DIRECT MESSAGES
-CREATE TABLE direct_messages (
-    id SERIAL PRIMARY KEY,
-    sender_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-    recipient_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-    message TEXT NOT NULL,
-    is_read BOOLEAN DEFAULT FALSE,
-    sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-```
-```
--- USER BADGES/ACHIEVEMENTS
-CREATE TABLE user_badges (
-    id SERIAL PRIMARY KEY,
-    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-    community_id INTEGER REFERENCES communities(id) ON DELETE CASCADE, -- NULL for global badges
-    badge_type VARCHAR(50) NOT NULL, -- 'active_member', 'valued_contributor', 'community_champion', etc.
-    badge_level VARCHAR(20), -- 'bronze', 'silver', 'gold', etc.
-    earned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-```
-```
--- INDEXES for performance
 CREATE INDEX idx_users_username ON users(username);
 CREATE INDEX idx_users_email ON users(email);
-CREATE INDEX idx_posts_community_id ON posts(community_id);
-CREATE INDEX idx_posts_user_id ON posts(user_id);
-CREATE INDEX idx_posts_created_at ON posts(created_at DESC);
-CREATE INDEX idx_posts_visibility_score ON posts(visibility_score DESC);
-CREATE INDEX idx_community_members_user_id ON community_members(user_id);
-CREATE INDEX idx_community_members_community_id ON community_members(community_id);
-CREATE INDEX idx_post_reactions_post_id ON post_reactions(post_id);
-CREATE INDEX idx_listening_history_user_id ON listening_history(user_id);
-CREATE INDEX idx_events_community_id ON events(community_id);
-CREATE INDEX idx_events_start_time ON events(start_time);
+```
+```sql
+-- 2. Refresh Tokens
+CREATE TABLE refresh_tokens (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    token_hash VARCHAR(64) UNIQUE NOT NULL,
+    device_info VARCHAR(255),
+    expires_at TIMESTAMP NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    last_used TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_refresh_tokens_user_id ON refresh_tokens(user_id);
+CREATE INDEX idx_refresh_tokens_token_hash ON refresh_tokens(token_hash);
+CREATE INDEX idx_refresh_tokens_expires_at ON refresh_tokens(expires_at);
+```
+```sql
+-- 3. Email Tokens
+CREATE TABLE email_tokens (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    token_hash VARCHAR(64) UNIQUE NOT NULL,
+    expires_at TIMESTAMP NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    is_used BOOLEAN DEFAULT FALSE
+);
+
+CREATE INDEX idx_email_verification_user_id ON email_tokens(user_id);
+CREATE INDEX idx_email_verification_token_hash ON email_tokens(token_hash);
+CREATE INDEX idx_email_verification_expires_at ON email_tokens(expires_at);
+```
+```sql
+-- 4. Password Tokens
+CREATE TABLE password_tokens (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    token_hash VARCHAR(64) UNIQUE NOT NULL,
+    expires_at TIMESTAMP NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    is_used BOOLEAN DEFAULT FALSE
+);
+
+CREATE INDEX idx_password_reset_user_id ON password_tokens(user_id);
+CREATE INDEX idx_password_reset_token_hash ON password_tokens(token_hash);
+CREATE INDEX idx_password_reset_expires_at ON password_tokens(expires_at);
+```
+```sql
+-- 5. Snippets (One per artist for now)
+CREATE TABLE snippets (
+    id SERIAL PRIMARY KEY,
+    artist_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    title VARCHAR(100) NOT NULL,
+    audio_url VARCHAR(500) NOT NULL, -- S3/Cloudinary URL
+    duration_seconds INTEGER DEFAULT 15 CHECK(duration_seconds <= 15),
+    play_count INTEGER DEFAULT 0,
+    fire_count INTEGER DEFAULT 0,
+    skip_count INTEGER DEFAULT 0,
+    fire_rate DECIMAL(3, 2) GENERATED ALWAYS AS (
+        CASE
+            WHEN (fire_count + skip_count) > 0
+            THEN fire_count::DECIMAL / (fire_count + skip_count)
+            ELSE 0
+        END
+    ) STORED,
+    is_active BOOEAN DEFAULT TRUE, -- shadowban if fire_rate too low
+    uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(artist_id) -- enforces ONE snippet per artist
+);
+
+CREATE INDEX idx_snippets_artist ON snippets(artist_id);
+CREATE INDEX idx_snippets_vibe ON snippets(vibe);
+CREATE INDEX idx_snippets_active ON snippets(is_active);
+CREATE INDEX idx_snippets_fire_rate ON snippets(fire_rate DESC);
+```
+```sql
+-- 6. SWIPES (NEW - Every user interaction)
+CREATE TABLE swipes (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    snippet_id INTEGER REFERENCES snippets(id) ON DELETE CASCADE,
+    action VARCHAR(10) CHECK (action IN ('fire', 'skip')) NOT NULL,
+    swiped_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_id, snippet_id)  -- can't swipe same snippet twice
+);
+
+CREATE INDEX idx_swipes_user ON swipes(user_id);
+CREATE INDEX idx_swipes_snippet ON swipes(snippet_id);
+CREATE INDEX idx_swipes_action ON swipes(action);
+CREATE INDEX idx_swipes_time ON swipes(swiped_at DESC);
+```
+```sql
+-- 7. FOLLOWS (NEW - Auto-createed when you fire)
+CREATE TABLE follows (
+    follower_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    artist_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    followed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY(follower_id, artist_id)
+);
+
+CREATE INDEX idx_follows_follower ON follows(follower_id);
+CREATE INDEX idx_follows_artist ON follows(artist_id);
+```
+```sql
+-- 8. Artist Similarities (For taste matching) 
+CREATE TABLE artist_similarities (
+    artist_a INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    artist_b INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    similarity_score DECIMAL(3,2) DEFAULT 0,
+    last_calculated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY(artist_a, artist_b)
+);
+
+CREATE INDEX idx_similarities_score ON artist_similarities(similarity_score DESC);
+```
+
+## 5 Functions Total
+```sql
+-- 1. Token Cleanup
+CREATE OR REPLACE FUNCTION cleanup_expired_tokens() RETURNS void AS $$
+BEGIN
+    DELETE FROM refresh_tokens WHERE expires_at < NOW();
+END;
+$$ LANGUAGE plpgsql;
+```
+```sql
+-- 2. Auto update snippet stats on every swipe
+CREATE OR REPLACE FUNCTION update_snippet_stats() RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.action = 'fire' THEN
+        UPDATE snippets 
+        SET fire_count = fire_count + 1,
+            play_count = play_count + 1
+        WHERE id = NEW.snippet_id;
+        
+        -- Auto-follow the artist
+        INSERT INTO follows (follower_id, artist_id)
+        SELECT NEW.user_id, artist_id FROM snippets 
+        WHERE id = NEW.snippet_id
+        ON CONFLICT DO NOTHING;
+        
+        -- Mark user as artist after first upload
+        UPDATE users 
+        SET is_artist = TRUE 
+        WHERE id = (SELECT artist_id FROM snippets WHERE id = NEW.snippet_id);
+    ELSE
+        UPDATE snippets 
+        SET skip_count = skip_count + 1,
+            play_count = play_count + 1
+        WHERE id = NEW.snippet_id;
+    END IF;
+    
+    -- Update user last_login (using your existing field)
+    UPDATE users SET last_login = NOW() WHERE id = NEW.user_id;
+    
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trigger_update_snippet_stats
+AFTER INSERT ON swipes
+FOR EACH ROW EXECUTE FUNCTION update_snippet_stats();
+```
+```sql
+-- 3. Auto shadowban snippets with bad fire rate
+CREATE OR REPLACE FUNCTION check_shadowban() RETURNS TRIGGER AS $$
+BEGIN
+    -- If 100+ swipes and less than 5% fire rate, shadowban
+    IF (NEW.fire_count + NEW.skip_count) >= 100 AND 
+       NEW.fire_rate < 0.05 THEN
+        NEW.is_active := FALSE;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trigger_check_shadowban
+BEFORE UPDATE ON snippets
+FOR EACH ROW EXECUTE FUNCTION check_shadowban();
+```
+```sql
+CREATE OR REPLACE FUNCTION mark_as_artist() RETURNS TRIGGER AS $$
+BEGIN
+    UPDATE users SET is_artist = TRUE WHERE id = NEW.artist_id;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trigger_mark_as_artist
+AFTER INSERT ON snippets
+FOR EACH ROW EXECUTE FUNCTION mark_as_artist();
+```
+```sql
+-- 4. Calculate artist similarities (run as cron job every hour)
+CREATE OR REPLACE FUNCTION calculate_similarities() RETURNS void AS $$
+BEGIN
+    TRUNCATE artist_similarities;
+    
+    INSERT INTO artist_similarities (artist_a, artist_b, similarity_score)
+    SELECT 
+        s1.artist_id as artist_a,
+        s2.artist_id as artist_b,
+        COUNT(DISTINCT sw1.user_id)::DECIMAL / 
+            LEAST(s1.fire_count, s2.fire_count) as score
+    FROM swipes sw1
+    JOIN swipes sw2 ON sw1.user_id = sw2.user_id
+    JOIN snippets s1 ON sw1.snippet_id = s1.id
+    JOIN snippets s2 ON sw2.snippet_id = s2.id
+    WHERE sw1.action = 'fire' 
+        AND sw2.action = 'fire'
+        AND s1.artist_id != s2.artist_id
+        AND s1.fire_count > 10
+        AND s2.fire_count > 10
+    GROUP BY s1.artist_id, s2.artist_id
+    HAVING COUNT(DISTINCT sw1.user_id) >= 3;
+END;
+$$ LANGUAGE plpgsql;
 ```
