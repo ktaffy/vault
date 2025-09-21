@@ -29,16 +29,16 @@ backend/
 ├── cmd/
 │   └── main.go                # Entry point, wire dependencies
 ├── internal/
-│   ├── user/                  # Existing user module
-│   │   ├── user.go            # Domain models & interfaces
-│   │   ├── user_handler.go    # HTTP handlers
-│   │   ├── user_service.go    # Business logic
-│   │   └── user_repo.go       # Database queries
-│   └── snippet/               # snippet module
-│       ├── snippet.go         # Domain models & interfaces
-│       ├── snippet_handler.go # HTTP handlers
-│       ├── snippet_service.go # Business logic
-│       └── snippet_repo.go    # Database queries
+│   ├── user/                   # USER MODULE
+│   │   ├── user.go             # Domain models & interfaces
+│   │   ├── user_handler.go     # HTTP handlers
+│   │   ├── user_service.go     # Business logic
+│   │   └── user_repo.go        # Database queries
+│   └── snippet/                # SNIPPET MODULE
+│       ├── snippet.go          # Domain models & interfaces
+│       ├── snippet_handler.go  # HTTP handlers
+│       ├── snippet_service.go  # Business logic
+│       └── snippet_repo.go     # Database queries
 ├── middleware/
 │   └── auth.go                 # JWT middleware (existing)
 ├── router/
@@ -47,10 +47,9 @@ backend/
 │   ├── db.go                   # Database connection
 │   └── migrations/             # SQL migrations
 ├── util/
-│   ├── password.go             # Password hashing (existing)
-│   ├── token.go                # Token generation (existing)
-│   ├── sanitize.go             # Input sanitization (existing)
-│   └── storage.go              # NEW: S3/Cloudinary upload
+│   ├── password.go             # Password hashing
+│   ├── token.go                # JWT token generation
+│   ├── sanitize.go             # Input sanitization
+│   └── audio.go                # S3 upload + audio file handling + cleanup
 └── config/
     └── config.go               # Environment config
-```

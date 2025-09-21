@@ -12,7 +12,7 @@ var r *gin.Engine
 func InitRouter(userHandler *user.Handler, snippetHandler *snippet.Handler) {
 	r = gin.Default()
 
-	// Public Routes
+	// Public User Routes
 	r.POST("/signup", userHandler.CreateUser)
 	r.POST("/login", userHandler.Login)
 	r.POST("/refresh", userHandler.RefreshToken)
@@ -22,15 +22,20 @@ func InitRouter(userHandler *user.Handler, snippetHandler *snippet.Handler) {
 	r.POST("/reset-password", userHandler.ResetPassword)
 	r.POST("/reactivate-account", userHandler.ReactivateAccount)
 
-	// Protected Routes
+	// Protected User Routes
 	r.PUT("/update-profile", middleware.JWTAuth(), userHandler.UpdateProfile)
 	r.PUT("/toggle-artist", middleware.JWTAuth(), userHandler.ToggleArtist)
 	r.POST("/resend-verification", middleware.JWTAuth(), userHandler.ResendVerification)
 	r.POST("/deactivate-account", middleware.JWTAuth(), userHandler.DeactivateAccount)
 	r.DELETE("/delete-account", middleware.JWTAuth(), userHandler.DeleteAccount)
 
+	// Publis Snippet Routes
+	r.GET("/snippet/:id", snippetHandler.GetSnippetByID)
+
 	// Protected Snippet Routes
 	r.POST("/snippet/upload", middleware.JWTAuth(), snippetHandler.UploadSnippet)
+	r.PUT("/snippet/update", middleware.JWTAuth(), snippetHandler.UpdateSnippet)
+	r.DELETE("/snippet/delete", middleware.JWTAuth(), snippetHandler.DeleteSnippet)
 	r.GET("/snippet/artist", middleware.JWTAuth(), snippetHandler.GetArtistSnippet)
 }
 

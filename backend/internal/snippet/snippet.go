@@ -30,12 +30,29 @@ type UploadRes struct {
 	Message  string `json:"message"`
 }
 
+type UpdateReq struct {
+	Title string `json:"title" form:"title" binding:"required,max=100"`
+}
+
+type UpdateRes struct {
+	ID       int64  `json:"id"`
+	Title    string `json:"title"`
+	AudioURL string `json:"audio_url"`
+	Message  string `json:"message"`
+}
+
 type Repo interface {
 	CreateSnippet(ctx context.Context, snippet *Snippet) (*Snippet, error)
 	GetSnippetByArtistID(ctx context.Context, artistID int64) (*Snippet, error)
+	UpdateSnippet(ctx context.Context, artistID int64, snippet *Snippet) (*Snippet, error)
+	DeleteSnippet(ctx context.Context, artistID int64) error
+	GetSnippetByID(ctx context.Context, snippetID int64) (*Snippet, error)
 }
 
 type Service interface {
 	UploadSnippet(c context.Context, artistID int64, req *UploadReq, audioFile []byte, filename string) (*UploadRes, error)
 	GetSnippet(c context.Context, artistID int64) (*Snippet, error)
+	UpdateSnippet(c context.Context, artistID int64, req *UpdateReq, audioFile []byte, filename string) (*UpdateRes, error)
+	DeleteSnippet(c context.Context, artistID int64) error
+	GetSnippetByID(c context.Context, snippetID int64) (*Snippet, error)
 }

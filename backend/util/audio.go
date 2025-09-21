@@ -74,6 +74,38 @@ func UploadAudioFile(audioFile []byte, filename string) (string, error) {
 	return audioURL, nil
 }
 
+func DeleteAudioFile(audioURL string) error {
+	if s3Client == nil {
+		return fmt.Errorf("S3 client not initialized")
+	}
+	cfg := cfg.Load()
+	key, err := extractS3Key(audioURL)
+	if err != nil {
+		return err
+	}
+	_, err = s3Client.DeleteObject(context.TODO(), &s3.DeleteObjectInput{
+		Bucket: aws.String(cfg.S3ExpressBucket),
+		Key:    aws.String(key),
+	})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func extractS3Key(audioURL string) (string, error) {
+	if !strings.Contains(audioURL, "/audio/") {
+		return "", fmt.Errorf("URL does not contain /audio/ path")
+	}
+
+	parts := strings.Split(audioURL, "/audio/")
+	if len(parts) != 2 {
+		return "", fmt.Errorf("malformed S3 URL")
+	}
+
+	return "audio/" + parts[1], nil
+}
+
 func uploadToS3Express(audioFile []byte, filename string) (string, error) {
 	if s3Client == nil {
 		return "", fmt.Errorf("S3 client not initialized")
