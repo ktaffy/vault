@@ -29,6 +29,9 @@ type Config struct {
 	SMTPUsername              string
 	SMTPPassword              string
 	FromEmail                 string
+
+	S3ExpressBucket string
+	S3Region        string
 }
 
 func Load() *Config {
@@ -55,6 +58,9 @@ func Load() *Config {
 		SMTPUsername:              getEnv("SMTP_USERNAME"),
 		SMTPPassword:              getEnv("SMTP_PASSWORD"),
 		FromEmail:                 getEnv("FROM_EMAIL"),
+
+		S3ExpressBucket: getEnv("S3_EXPRESS_BUCKET"),
+		S3Region:        getEnv("S3_REGION"),
 	}
 }
 

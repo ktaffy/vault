@@ -16,6 +16,14 @@ server:
 db-table:
 	docker exec -it vault-vault-1 psql -U vault -d vault -c "\d $(table)"
 
+clean-all-data:
+	docker exec -it vault-vault-1 psql -U vault -d vault -c "\
+		TRUNCATE TABLE refresh_tokens CASCADE; \
+		TRUNCATE TABLE email_tokens CASCADE; \
+		TRUNCATE TABLE password_tokens CASCADE; \
+		TRUNCATE TABLE snippets CASCADE; \
+		TRUNCATE TABLE users RESTART IDENTITY CASCADE;"
+
 postgres:
 	docker exec -it vault-vault-1 psql -U vault -d vault
 
@@ -37,4 +45,4 @@ migrate-version:
 migrate-clean:
 	migrate -path $(MIGRATIONS_PATH) -database $(DB_URL) force $(version)
 
-.PHONY: setup end postgres migrate-create migrate-up migrate-down migrate-version migrate-clean server db-table check-table
+.PHONY: setup end postgres migrate-create migrate-up migrate-down migrate-version migrate-clean server db-table check-table clean-all-data
