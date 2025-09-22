@@ -42,7 +42,7 @@ func InitRouter(userHandler *user.Handler, snippetHandler *snippet.Handler, swip
 
 	// SWIPE
 	// Protected
-	r.POST("/swipe", middleware.JWTAuth(), swipeHandler.RecordSwipe)
+	r.GET("/swipe", middleware.JWTAuth(), swipeHandler.RecordSwipe)
 
 	// FEED
 	// Protected
