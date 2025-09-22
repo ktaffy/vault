@@ -132,3 +132,98 @@ func (r *repo) GetSimilarArtists(ctx context.Context, artistIDs []int64) ([]int6
 
 	return similarArtists, nil
 }
+
+func (r *repo) GetUserQueueSize(ctx context.Context, userID int64) (int, error) {
+	var count int
+	query := "SELECT COUNT(*) FROM feed_queues WHERE user_id = $1"
+	err := r.db.QueryRowContext(ctx, query, userID).Scan(&count)
+	return count, err
+}
+
+func (r *repo) GetNextFromQueue(ctx context.Context, userID int64) (*FeedItem, error) {
+	query := `
+        SELECT fq.snippet_id, s.artist_id, u.username, s.title, s.audio_url,
+               s.duration_seconds, s.play_count, s.fire_count, s.fire_rate, s.uploaded_at
+        FROM feed_queues fq
+        JOIN snippets s ON fq.snippet_id = s.id
+        JOIN users u ON s.artist_id = u.id
+        WHERE fq.user_id = $1
+        ORDER BY fq.position ASC
+        LIMIT 1`
+
+	item := &FeedItem{}
+	err := r.db.QueryRowContext(ctx, query, userID).Scan(
+		&item.SnippetID, &item.ArtistID, &item.ArtistName,
+		&item.Title, &item.AudioURL, &item.Duration,
+		&item.PlayCount, &item.FireCount, &item.FireRate, &item.UploadedAt,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return item, nil
+}
+
+func (r *repo) RemoveFromQueue(ctx context.Context, userID int64, snippetID int64) error {
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	_, err = tx.ExecContext(ctx,
+		`DELETE FROM feed_queues WHERE user_id = $1 AND snippet_id = $2`,
+		userID, snippetID)
+	if err != nil {
+		return err
+	}
+
+	// Reorder positions to fill the gap
+	_, err = tx.ExecContext(ctx, `
+        UPDATE feed_queues 
+        SET position = position - 1 
+        WHERE user_id = $1 AND position > (
+            SELECT COALESCE(MAX(position), 0) 
+            FROM feed_queues 
+            WHERE user_id = $1
+        )`, userID)
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (r *repo) AddToQueue(ctx context.Context, userID int64, snippets []*FeedItem) error {
+	if len(snippets) == 0 {
+		return nil
+	}
+
+	var maxPos int
+	err := r.db.QueryRowContext(ctx,
+		`SELECT COALESCE(MAX(position), 0) FROM feed_queues WHERE user_id = $1`,
+		userID).Scan(&maxPos)
+	if err != nil {
+		return err
+	}
+
+	for i, snippet := range snippets {
+		position := maxPos + i + 1
+		_, err := r.db.ExecContext(ctx, `
+            INSERT INTO feed_queues (user_id, snippet_id, position) 
+            VALUES ($1, $2, $3)
+            ON CONFLICT (user_id, snippet_id) DO NOTHING`,
+			userID, snippet.SnippetID, position)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (r *repo) ClearUserQueue(ctx context.Context, userID int64) error {
+	_, err := r.db.ExecContext(ctx, `DELETE FROM feed_queues WHERE user_id = $1`, userID)
+	return err
+}

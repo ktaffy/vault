@@ -27,44 +27,166 @@ func (s *service) GetNextSnippet(c context.Context, userID int64) (*NextSnippetR
 	ctx, cancel := context.WithTimeout(c, s.timeOut)
 	defer cancel()
 
+	// Get user's swipe count to determine phase
 	swipeCount, err := s.Repo.GetUserSwipeCount(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
 
+	// Phase 1: Random for first 20 swipes (no queue needed)
+	if swipeCount < 20 {
+		availableSnippets, err := s.Repo.GetAvailableSnippets(ctx, userID)
+		if err != nil {
+			return nil, err
+		}
+		if len(availableSnippets) == 0 {
+			return &NextSnippetRes{Message: "No more snippets available"}, nil
+		}
+
+		randomSnippet := availableSnippets[rand.Intn(len(availableSnippets))]
+		return &NextSnippetRes{Snippet: randomSnippet}, nil
+	}
+
+	// Phase 2/3: Use queue system
+	queueSize, err := s.Repo.GetUserQueueSize(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	// If queue is empty or low, refill it
+	if queueSize == 0 {
+		err = s.RefillUserQueue(ctx, userID)
+		if err != nil {
+			return nil, err
+		}
+	} else if queueSize <= 3 {
+		// Background refill when queue gets low
+		go func() {
+			bgCtx := context.Background()
+			s.RefillUserQueue(bgCtx, userID)
+		}()
+	}
+
+	// Get next snippet from queue
+	nextSnippet, err := s.Repo.GetNextFromQueue(ctx, userID)
+	if err != nil {
+		// Fallback to real-time generation if queue fails
+		return s.generateSnippetRealTime(ctx, userID)
+	}
+
+	// Remove the snippet from queue after serving
+	go func() {
+		bgCtx := context.Background()
+		s.Repo.RemoveFromQueue(bgCtx, userID, nextSnippet.SnippetID)
+	}()
+
+	return &NextSnippetRes{Snippet: nextSnippet}, nil
+}
+
+func (s *service) RefillUserQueue(c context.Context, userID int64) error {
+	ctx, cancel := context.WithTimeout(c, s.timeOut)
+	defer cancel()
+
+	// Get available snippets
+	availableSnippets, err := s.Repo.GetAvailableSnippets(ctx, userID)
+	if err != nil {
+		return err
+	}
+
+	if len(availableSnippets) == 0 {
+		return nil // No snippets to add
+	}
+
+	// Select and score candidates
+	candidates := s.selectCandidates(ctx, availableSnippets, userID)
+	if len(candidates) == 0 {
+		return nil
+	}
+
+	// Score and sort all candidates
+	scoredSnippets := s.scoreAndSortCandidates(ctx, candidates, userID)
+
+	// Take top 10 for queue
+	queueSnippets := scoredSnippets
+	if len(queueSnippets) > 10 {
+		queueSnippets = queueSnippets[:10]
+	}
+
+	// Add to queue
+	return s.Repo.AddToQueue(ctx, userID, queueSnippets)
+}
+
+func (s *service) scoreAndSortCandidates(ctx context.Context, candidates []*FeedItem, userID int64) []*FeedItem {
+	if len(candidates) <= 1 {
+		return candidates
+	}
+
+	// Get user's taste profile
+	firedArtists, _ := s.Repo.GetUserFiredArtists(ctx, userID)
+	similarArtists, _ := s.Repo.GetSimilarArtists(ctx, firedArtists)
+
+	similarArtistMap := make(map[int64]bool)
+	for _, artistID := range similarArtists {
+		similarArtistMap[artistID] = true
+	}
+
+	// Score each candidate
+	type scoredSnippet struct {
+		snippet *FeedItem
+		score   float64
+	}
+
+	var scored []scoredSnippet
+	for _, candidate := range candidates {
+		score := s.calculateScore(candidate, similarArtistMap)
+		scored = append(scored, scoredSnippet{
+			snippet: candidate,
+			score:   score,
+		})
+	}
+
+	// Sort by score (highest first)
+	for i := 0; i < len(scored)-1; i++ {
+		for j := i + 1; j < len(scored); j++ {
+			if scored[j].score > scored[i].score {
+				scored[i], scored[j] = scored[j], scored[i]
+			}
+		}
+	}
+
+	// Extract sorted snippets
+	var result []*FeedItem
+	for _, item := range scored {
+		result = append(result, item.snippet)
+	}
+
+	return result
+}
+
+func (s *service) generateSnippetRealTime(ctx context.Context, userID int64) (*NextSnippetRes, error) {
+	// Fallback to old real-time method if queue fails
 	availableSnippets, err := s.Repo.GetAvailableSnippets(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
 
 	if len(availableSnippets) == 0 {
-		return &NextSnippetRes{
-			Message: "No more snippets available",
-		}, nil
+		return &NextSnippetRes{Message: "No more snippets available"}, nil
 	}
 
-	// Phase 1: Random for first 20 swipes
-	if swipeCount < 20 {
-		randomSnippet := availableSnippets[rand.Intn(len(availableSnippets))]
-		return &NextSnippetRes{
-			Snippet: randomSnippet,
-		}, nil
-	}
-
-	// Phase 2/3: Candidate selection + scoring
 	candidates := s.selectCandidates(ctx, availableSnippets, userID)
 	if len(candidates) == 0 {
-		// Fallback to random if no candidates
 		randomSnippet := availableSnippets[rand.Intn(len(availableSnippets))]
-		return &NextSnippetRes{
-			Snippet: randomSnippet,
-		}, nil
+		return &NextSnippetRes{Snippet: randomSnippet}, nil
 	}
 
-	bestSnippet := s.scoreAndRankCandidates(ctx, candidates, userID)
-	return &NextSnippetRes{
-		Snippet: bestSnippet,
-	}, nil
+	scoredSnippets := s.scoreAndSortCandidates(ctx, candidates, userID)
+	if len(scoredSnippets) == 0 {
+		randomSnippet := availableSnippets[rand.Intn(len(availableSnippets))]
+		return &NextSnippetRes{Snippet: randomSnippet}, nil
+	}
+	bestSnippet := scoredSnippets[0]
+	return &NextSnippetRes{Snippet: bestSnippet}, nil
 }
 
 func (s *service) selectCandidates(ctx context.Context, available []*FeedItem, userID int64) []*FeedItem {
@@ -125,33 +247,6 @@ func (s *service) selectCandidates(ctx context.Context, available []*FeedItem, u
 	}
 
 	return candidates
-}
-
-func (s *service) scoreAndRankCandidates(ctx context.Context, candidates []*FeedItem, userID int64) *FeedItem {
-	if len(candidates) == 1 {
-		return candidates[0]
-	}
-
-	firedArtists, _ := s.Repo.GetUserFiredArtists(ctx, userID)
-	similarArtists, _ := s.Repo.GetSimilarArtists(ctx, firedArtists)
-
-	similarArtistMap := make(map[int64]bool)
-	for _, artistID := range similarArtists {
-		similarArtistMap[artistID] = true
-	}
-
-	bestSnippet := candidates[0]
-	bestScore := s.calculateScore(bestSnippet, similarArtistMap)
-
-	for _, candidate := range candidates[1:] {
-		score := s.calculateScore(candidate, similarArtistMap)
-		if score > bestScore {
-			bestScore = score
-			bestSnippet = candidate
-		}
-	}
-
-	return bestSnippet
 }
 
 func (s *service) calculateScore(snippet *FeedItem, userTasteMap map[int64]bool) float64 {

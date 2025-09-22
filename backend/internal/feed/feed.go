@@ -29,6 +29,11 @@ type Repo interface {
 	GetUserSwipeCount(ctx context.Context, userID int64) (int, error)
 	GetUserFiredArtists(ctx context.Context, userID int64) ([]int64, error)
 	GetSimilarArtists(ctx context.Context, artistIDs []int64) ([]int64, error)
+	GetUserQueueSize(ctx context.Context, userID int64) (int, error)
+	GetNextFromQueue(ctx context.Context, userID int64) (*FeedItem, error)
+	RemoveFromQueue(ctx context.Context, userID int64, snippetID int64) error
+	AddToQueue(ctx context.Context, userID int64, snippets []*FeedItem) error
+	ClearUserQueue(ctx context.Context, userID int64) error
 }
 
 type Service interface {
