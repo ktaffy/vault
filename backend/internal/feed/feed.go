@@ -38,4 +38,5 @@ type Repo interface {
 
 type Service interface {
 	GetNextSnippet(c context.Context, userID int64) (*NextSnippetRes, error)
+	RefillUserQueue(c context.Context, userID int64) error
 }

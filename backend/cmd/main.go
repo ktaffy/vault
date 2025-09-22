@@ -10,6 +10,7 @@ import (
 	"github.com/ktaffy/vault/backend/internal/snippet"
 	"github.com/ktaffy/vault/backend/internal/swipe"
 	"github.com/ktaffy/vault/backend/internal/user"
+	"github.com/ktaffy/vault/backend/jobs"
 	"github.com/ktaffy/vault/backend/router"
 	"github.com/ktaffy/vault/backend/util"
 )
@@ -44,6 +45,10 @@ func main() {
 	feedRep := feed.NewRepo(dbConn.GetDB())
 	feedSvc := feed.NewService(feedRep)
 	feedHandler := feed.NewHandler(feedSvc)
+
+	// Background jobs
+	jobManager := jobs.NewJobManager(dbConn, feedSvc)
+	jobManager.Start()
 
 	port := os.Getenv("SERVER_PORT")
 
