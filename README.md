@@ -44,6 +44,6 @@ Every swipe guarantees your snippet gets heard. No algorithms to game. No playli
 - One snippet per artist until 50+ fire rate
 
 ## Other docs
-- [API Documenation](docs/api.md)
-- [DB Documentation](docs/db.md)
-- [Design Documentation](docs/design.md)
+- [API Documenation](docs/backend/api.md)
+- [DB Documentation](docs/backend/db.md)
+- [Design Documentation](docs/backend/design.md)
