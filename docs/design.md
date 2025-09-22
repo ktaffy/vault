@@ -34,13 +34,28 @@ backend/
 │   │   ├── user_handler.go     # HTTP handlers
 │   │   ├── user_service.go     # Business logic
 │   │   └── user_repo.go        # Database queries
-│   └── snippet/                # SNIPPET MODULE
-│       ├── snippet.go          # Domain models & interfaces
-│       ├── snippet_handler.go  # HTTP handlers
-│       ├── snippet_service.go  # Business logic
-│       └── snippet_repo.go     # Database queries
+│   ├── snippet/                # SNIPPET MODULE
+│   │   ├── snippet.go          # Domain models & interfaces
+│   │   ├── snippet_handler.go  # HTTP handlers
+│   │   ├── snippet_service.go  # Business logic
+│   │   └── snippet_repo.go     # Database queries
+│   ├── swipe/                  # SWIPE MODULE
+│   │   ├── swipe.go            # Domain models & interfaces
+│   │   ├── swipe_handler.go    # HTTP handlers
+│   │   ├── swipe_service.go    # Business logic
+│   │   └── swipe_repo.go       # Database queries
+│   ├── feed/                   # FEED MODULE (coming next)
+│   │   ├── feed.go             # Domain models & interfaces
+│   │   ├── feed_handler.go     # HTTP handlers
+│   │   ├── feed_service.go     # Business logic
+│   │   └── feed_repo.go        # Database queries
+│   └── stats/                  # STATS MODULE (coming last)
+│       ├── stats.go            # Domain models & interfaces
+│       ├── stats_handler.go    # HTTP handlers
+│       ├── stats_service.go    # Business logic
+│       └── stats_repo.go       # Database queries
 ├── middleware/
-│   └── auth.go                 # JWT middleware (existing)
+│   └── auth.go                 # JWT middleware
 ├── router/
 │   └── router.go               # Route definitions
 ├── db/
