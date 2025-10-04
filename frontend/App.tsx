@@ -1,133 +1,158 @@
-import { Provider } from 'react-redux';
+// App.tsx
+import { Provider, useDispatch, useSelector } from 'react-redux';
 import { ThemeProvider } from './src/context/ThemeContext';
 import { store } from './src/store/store';
 import { View, Text, StyleSheet, ScrollView, SafeAreaView } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from './src/hooks/useTheme';
-import { Button, Input, LoadingSpinner, ErrorBoundary } from './src/components/common';
+import { Button } from './src/components/common';
+
+// Import actions to test
+import { setUser, clearAuth, selectUser, selectIsAuthenticated } from './src/store/slices/authSlice';
+import { addSnippet, setCurrentIndex, selectSnippets, selectCurrentIndex } from './src/store/slices/feedSlice';
+import { setPlaying, setProgress, selectIsPlaying, selectProgress } from './src/store/slices/audioSlice';
+import type { AppDispatch } from './src/store/store';
 
 const TestScreen = () => {
   const { theme, toggleTheme } = useTheme();
+  const dispatch = useDispatch<AppDispatch>();
+
+  // Test selectors
+  const user = useSelector(selectUser);
+  const isAuthenticated = useSelector(selectIsAuthenticated);
+  const snippets = useSelector(selectSnippets);
+  const currentIndex = useSelector(selectCurrentIndex);
+  const isPlaying = useSelector(selectIsPlaying);
+  const progress = useSelector(selectProgress);
+
+  // Test auth slice
+  const testAuth = () => {
+    dispatch(setUser({
+      id: '1',
+      username: 'testuser',
+      email: 'test@vault.com',
+      isArtist: true,
+      emailVerified: true,
+    }));
+  };
+
+  const testLogout = () => {
+    dispatch(clearAuth());
+  };
+
+  // Test feed slice
+  const testFeed = () => {
+    dispatch(addSnippet({
+      id: 1,
+      title: 'Test Snippet',
+      artistId: 1,
+      artistName: 'Test Artist',
+      audioUrl: 'https://test.com/audio.mp3',
+      durationSeconds: 15,
+      playCount: 100,
+      fireCount: 50,
+    }));
+  };
+
+  const testNextSnippet = () => {
+    dispatch(setCurrentIndex(currentIndex + 1));
+  };
+
+  // Test audio slice
+  const testPlay = () => {
+    dispatch(setPlaying(true));
+  };
+
+  const testPause = () => {
+    dispatch(setPlaying(false));
+  };
+
+  const testProgress = () => {
+    dispatch(setProgress(0.5));
+  };
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.colors.background }]}>
-      <ScrollView
-        style={styles.container}
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={[styles.title, { color: theme.colors.text }]}>
-            Vault Components
+      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+        <Text style={[styles.title, { color: theme.colors.text }]}>
+          Redux Store Test
+        </Text>
+
+        {/* Theme Test */}
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
+            Theme Slice ✅
           </Text>
-          <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>
-            Professional UI Testing
+          <Text style={[styles.info, { color: theme.colors.textSecondary }]}>
+            Current: {theme.isDark ? 'Dark' : 'Light'}
           </Text>
+          <Button title="Toggle Theme" onPress={toggleTheme} />
         </View>
 
-        {/* Theme Toggle */}
-        <Button
-          title={`Switch to ${theme.isDark ? 'Light' : 'Dark'} Mode`}
-          onPress={toggleTheme}
-          variant="ghost"
-          fullWidth
-        />
-
-        {/* Button Showcase */}
-        <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
-          Button Variants
-        </Text>
-
-        <Button title="Primary Action" variant="primary" fullWidth />
-        <Button title="Secondary Action" variant="secondary" fullWidth />
-        <Button title="Outline Action" variant="outline" fullWidth />
-        <Button title="Ghost Action" variant="ghost" fullWidth />
-
-        {/* Button States */}
-        <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
-          Button States
-        </Text>
-
-        <Button title="Loading..." loading variant="primary" fullWidth />
-        <Button title="Disabled" disabled variant="primary" fullWidth />
-
-        {/* Button Sizes */}
-        <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
-          Button Sizes
-        </Text>
-
-        <View style={styles.row}>
-          <Button title="Small" size="small" variant="primary" />
-          <Button title="Medium" size="medium" variant="primary" />
-          <Button title="Large" size="large" variant="primary" />
+        {/* Auth Test */}
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
+            Auth Slice
+          </Text>
+          <Text style={[styles.info, { color: theme.colors.textSecondary }]}>
+            Authenticated: {isAuthenticated ? 'Yes' : 'No'}
+          </Text>
+          {user && (
+            <Text style={[styles.info, { color: theme.colors.textSecondary }]}>
+              User: {user.username} ({user.email})
+            </Text>
+          )}
+          <Button title="Login Test User" onPress={testAuth} />
+          <Button title="Logout" onPress={testLogout} variant="outline" />
         </View>
 
-        {/* Input Showcase */}
-        <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
-          Input Fields
-        </Text>
-
-        <Input
-          label="Email Address"
-          placeholder="you@example.com"
-          keyboardType="email-address"
-          autoCapitalize="none"
-          leftIcon={<Ionicons name="mail-outline" size={20} color={theme.colors.textSecondary} />}
-        />
-
-        <Input
-          label="Password"
-          placeholder="Enter your password"
-          isPassword
-        />
-
-        <Input
-          label="Username"
-          placeholder="@username"
-          helperText="Choose a unique username for your profile"
-          leftIcon={<Ionicons name="person-outline" size={20} color={theme.colors.textSecondary} />}
-        />
-
-        <Input
-          label="Full Name"
-          placeholder="John Doe"
-          error="This field is required"
-        />
-
-        {/* Loading Spinners */}
-        <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
-          Loading States
-        </Text>
-
-        <View style={[styles.spinnerCard, { backgroundColor: theme.colors.surface }]}>
-          <LoadingSpinner size="small" text="Loading..." />
+        {/* Feed Test */}
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
+            Feed Slice
+          </Text>
+          <Text style={[styles.info, { color: theme.colors.textSecondary }]}>
+            Snippets: {snippets.length}
+          </Text>
+          <Text style={[styles.info, { color: theme.colors.textSecondary }]}>
+            Current Index: {currentIndex}
+          </Text>
+          {snippets[currentIndex] && (
+            <Text style={[styles.info, { color: theme.colors.textSecondary }]}>
+              Playing: {snippets[currentIndex].title}
+            </Text>
+          )}
+          <Button title="Add Snippet" onPress={testFeed} />
+          <Button title="Next Snippet" onPress={testNextSnippet} variant="outline" />
         </View>
 
-        <View style={[styles.spinnerCard, { backgroundColor: theme.colors.surface }]}>
-          <LoadingSpinner size="large" text="Please wait..." />
+        {/* Audio Test */}
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
+            Audio Slice
+          </Text>
+          <Text style={[styles.info, { color: theme.colors.textSecondary }]}>
+            Playing: {isPlaying ? 'Yes' : 'No'}
+          </Text>
+          <Text style={[styles.info, { color: theme.colors.textSecondary }]}>
+            Progress: {Math.round(progress * 100)}%
+          </Text>
+          <Button title={isPlaying ? 'Pause' : 'Play'} onPress={isPlaying ? testPause : testPlay} />
+          <Button title="Set Progress 50%" onPress={testProgress} variant="outline" />
         </View>
-
-        {/* Call to Action */}
-        <View style={styles.ctaSection}>
-          <Button
-            title="Create Account"
-            variant="primary"
-            size="large"
-            fullWidth
-          />
-          <Button
-            title="Already have an account? Sign In"
-            variant="ghost"
-            fullWidth
-          />
-        </View>
-
-        <View style={styles.spacer} />
       </ScrollView>
     </SafeAreaView>
   );
 };
+
+export default function App() {
+  return (
+    <Provider store={store}>
+      <ThemeProvider>
+        <TestScreen />
+      </ThemeProvider>
+    </Provider>
+  );
+}
 
 const styles = StyleSheet.create({
   safeArea: {
@@ -137,57 +162,24 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    padding: 24,
-  },
-  header: {
-    marginBottom: 32,
-    marginTop: 8,
+    padding: 20,
   },
   title: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: 'bold',
-    marginBottom: 8,
-    letterSpacing: -0.5,
+    marginBottom: 30,
   },
-  subtitle: {
-    fontSize: 16,
-    letterSpacing: 0.2,
+  section: {
+    marginBottom: 30,
+    gap: 10,
   },
   sectionTitle: {
     fontSize: 20,
-    fontWeight: '700',
-    marginTop: 32,
-    marginBottom: 16,
-    letterSpacing: 0.3,
+    fontWeight: '600',
+    marginBottom: 8,
   },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  spinnerCard: {
-    borderRadius: 12,
-    marginBottom: 12,
-    padding: 16,
-  },
-  ctaSection: {
-    marginTop: 40,
-    marginBottom: 20,
-  },
-  spacer: {
-    height: 40,
+  info: {
+    fontSize: 14,
+    marginBottom: 4,
   },
 });
-
-// Wrap the app with ErrorBoundary
-const AppContent = () => (
-  <Provider store={store}>
-    <ThemeProvider>
-      <ErrorBoundary>
-        <TestScreen />
-      </ErrorBoundary>
-    </ThemeProvider>
-  </Provider>
-);
-
-export default AppContent;
