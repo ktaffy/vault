@@ -2,8 +2,9 @@ import { Provider } from 'react-redux';
 import { ThemeProvider } from './src/context/ThemeContext';
 import { store } from './src/store/store';
 import { View, Text, StyleSheet, ScrollView, SafeAreaView } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from './src/hooks/useTheme';
-import { Button, Input } from './src/components/common';
+import { Button, Input, LoadingSpinner, ErrorBoundary } from './src/components/common';
 
 const TestScreen = () => {
   const { theme, toggleTheme } = useTheme();
@@ -72,6 +73,7 @@ const TestScreen = () => {
           placeholder="you@example.com"
           keyboardType="email-address"
           autoCapitalize="none"
+          leftIcon={<Ionicons name="mail-outline" size={20} color={theme.colors.textSecondary} />}
         />
 
         <Input
@@ -84,6 +86,7 @@ const TestScreen = () => {
           label="Username"
           placeholder="@username"
           helperText="Choose a unique username for your profile"
+          leftIcon={<Ionicons name="person-outline" size={20} color={theme.colors.textSecondary} />}
         />
 
         <Input
@@ -91,6 +94,19 @@ const TestScreen = () => {
           placeholder="John Doe"
           error="This field is required"
         />
+
+        {/* Loading Spinners */}
+        <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
+          Loading States
+        </Text>
+
+        <View style={[styles.spinnerCard, { backgroundColor: theme.colors.surface }]}>
+          <LoadingSpinner size="small" text="Loading..." />
+        </View>
+
+        <View style={[styles.spinnerCard, { backgroundColor: theme.colors.surface }]}>
+          <LoadingSpinner size="large" text="Please wait..." />
+        </View>
 
         {/* Call to Action */}
         <View style={styles.ctaSection}>
@@ -149,6 +165,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: 12,
   },
+  spinnerCard: {
+    borderRadius: 12,
+    marginBottom: 12,
+    padding: 16,
+  },
   ctaSection: {
     marginTop: 40,
     marginBottom: 20,
@@ -158,12 +179,15 @@ const styles = StyleSheet.create({
   },
 });
 
-export default function App() {
-  return (
-    <Provider store={store}>
-      <ThemeProvider>
+// Wrap the app with ErrorBoundary
+const AppContent = () => (
+  <Provider store={store}>
+    <ThemeProvider>
+      <ErrorBoundary>
         <TestScreen />
-      </ThemeProvider>
-    </Provider>
-  );
-}
+      </ErrorBoundary>
+    </ThemeProvider>
+  </Provider>
+);
+
+export default AppContent;
