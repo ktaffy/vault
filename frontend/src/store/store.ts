@@ -4,7 +4,6 @@ import themeReducer from './slices/themeSlice';
 export const store = configureStore({
     reducer: {
         theme: themeReducer,
-        // Add other slices here as you build them
     },
 });
 
