@@ -12,6 +12,8 @@ end:
 
 server:
 	cd backend && go run cmd/main.go
+app:
+	cd frontend && npx expo start --tunnel
 
 db-table:
 	docker exec -it vault-vault-1 psql -U vault -d vault -c "\d $(table)"
@@ -45,4 +47,4 @@ migrate-version:
 migrate-clean:
 	migrate -path $(MIGRATIONS_PATH) -database $(DB_URL) force $(version)
 
-.PHONY: setup end postgres migrate-create migrate-up migrate-down migrate-version migrate-clean server db-table check-table clean-all-data
+.PHONY: setup end postgres migrate-create migrate-up migrate-down migrate-version migrate-clean server db-table check-table clean-all-data app
