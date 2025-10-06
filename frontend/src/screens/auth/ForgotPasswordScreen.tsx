@@ -13,15 +13,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
 import { Button, Input } from '../../components/common';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { AuthStackParamList } from '../../navigation/types';
 import { authService } from '../../services/api/auth';
+import { useRouter } from 'expo-router';
 
-type ForgotPasswordScreenProps = {
-    navigation: NativeStackNavigationProp<AuthStackParamList, 'ForgotPassword'>;
-};
-
-export const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navigation }) => {
+export const ForgotPasswordScreen = () => {
+    const router = useRouter();
     const insets = useSafeAreaInsets();
     const { theme } = useTheme();
 
@@ -46,7 +42,7 @@ export const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navi
             Alert.alert(
                 'Check Your Email',
                 'If an account exists with that email, you will receive a password reset link.',
-                [{ text: 'OK', onPress: () => navigation.goBack() }]
+                [{ text: 'OK', onPress: () => router.back() }]
             );
         } catch (error: any) {
             Alert.alert('Error', error.message || 'Something went wrong');
@@ -69,7 +65,7 @@ export const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navi
                 >
                     <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
                         <Pressable
-                            onPress={() => navigation.goBack()}
+                            onPress={() => router.back()}
                             style={styles.backButton}
                             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                         >
@@ -115,7 +111,7 @@ export const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navi
 
             <View style={[styles.footer, { paddingBottom: insets.bottom + 16 }]}>
                 <Pressable
-                    onPress={() => navigation.navigate('Login')}
+                    onPress={() => router.push('/(auth)/login')}
                     style={styles.loginButton}
                 >
                     <Text style={[styles.loginText, { color: theme.colors.textSecondary }]}>

@@ -4,14 +4,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
 import { Button } from '../../components/common';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { AuthStackParamList } from '../../navigation/types';
+import { useRouter } from 'expo-router';
 
-type EmailVerificationScreenProps = {
-    navigation: NativeStackNavigationProp<AuthStackParamList, 'EmailVerification'>;
-};
-
-export const EmailVerificationScreen: React.FC<EmailVerificationScreenProps> = ({ navigation }) => {
+export const EmailVerificationScreen = () => {
+    const router = useRouter();
     const insets = useSafeAreaInsets();
     const { theme } = useTheme();
 
@@ -45,7 +41,7 @@ export const EmailVerificationScreen: React.FC<EmailVerificationScreenProps> = (
             <View style={[styles.footer, { paddingBottom: insets.bottom + 24 }]}>
                 <Button
                     title="Back to Welcome"
-                    onPress={() => navigation.navigate('Welcome')}
+                    onPress={() => router.push('/(auth)/welcome')}
                     variant="primary"
                     size="large"
                     fullWidth

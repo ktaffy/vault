@@ -13,18 +13,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
 import { Button, Input } from '../../components/common';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RouteProp } from '@react-navigation/native';
-import { AuthStackParamList } from '../../navigation/types';
 import { authService } from '../../services/api/auth';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 
-type ResetPasswordScreenProps = NativeStackScreenProps<AuthStackParamList, 'ResetPassword'>;
-
-export const ResetPasswordScreen: React.FC<ResetPasswordScreenProps> = ({ navigation, route }) => {
+export const ResetPasswordScreen = () => {
+    const router = useRouter();
     const insets = useSafeAreaInsets();
     const { theme } = useTheme();
-    const { token } = route.params;
+    const { token } = useLocalSearchParams<{ token: string }>();
 
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
@@ -55,7 +51,7 @@ export const ResetPasswordScreen: React.FC<ResetPasswordScreenProps> = ({ naviga
             Alert.alert(
                 'Password Reset',
                 'Your password has been reset successfully. Please log in with your new password.',
-                [{ text: 'OK', onPress: () => navigation.navigate('Login') }]
+                [{ text: 'OK', onPress: () => router.push('/(auth)/login') }]
             );
         } catch (error: any) {
             Alert.alert('Error', error.message || 'Failed to reset password. The link may have expired.');
@@ -78,7 +74,7 @@ export const ResetPasswordScreen: React.FC<ResetPasswordScreenProps> = ({ naviga
                 >
                     <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
                         <Pressable
-                            onPress={() => navigation.navigate('Welcome')}
+                            onPress={() => router.push('welcome')}
                             style={styles.backButton}
                             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                         >

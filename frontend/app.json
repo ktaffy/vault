@@ -6,6 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
+    "scheme": "vault",
     "newArchEnabled": true,
     "splash": {
       "image": "./assets/splash-icon.png",
@@ -28,7 +29,8 @@
     },
     "plugins": [
       "expo-audio",
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-router"
     ]
   }
 }

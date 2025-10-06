@@ -14,14 +14,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
 import { useAuth } from '../../hooks/useAuth';
 import { Button, Input } from '../../components/common';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { AuthStackParamList } from '../../navigation/types';
+import { useRouter } from 'expo-router';
 
-type SignupScreenProps = {
-    navigation: NativeStackNavigationProp<AuthStackParamList, 'Signup'>;
-};
-
-export const SignupScreen: React.FC<SignupScreenProps> = ({ navigation }) => {
+export const SignupScreen = () => {
+    const router = useRouter();
     const insets = useSafeAreaInsets();
     const { theme } = useTheme();
     const { signup, loading } = useAuth();
@@ -58,7 +54,7 @@ export const SignupScreen: React.FC<SignupScreenProps> = ({ navigation }) => {
 
         try {
             await signup(username.trim(), email.trim(), password);
-            navigation.navigate('EmailVerification');
+            router.push('/(auth)/email-verification');
         } catch (error: any) {
             Alert.alert('Signup Failed', error.message || 'Please try again');
         }
@@ -78,7 +74,7 @@ export const SignupScreen: React.FC<SignupScreenProps> = ({ navigation }) => {
                 >
                     <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
                         <Pressable
-                            onPress={() => navigation.goBack()}
+                            onPress={() => router.back()}
                             style={styles.backButton}
                             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                         >
@@ -160,7 +156,7 @@ export const SignupScreen: React.FC<SignupScreenProps> = ({ navigation }) => {
 
             <View style={[styles.footer, { paddingBottom: insets.bottom + 16 }]}>
                 <Pressable
-                    onPress={() => navigation.navigate('Login')}
+                    onPress={() => router.push('/(auth)/login')}
                     style={styles.loginButton}
                 >
                     <Text style={[styles.loginText, { color: theme.colors.textSecondary }]}>

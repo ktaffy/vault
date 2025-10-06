@@ -4,14 +4,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
 import { Button } from '../../components/common';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { AuthStackParamList } from '../../navigation/types';
+import { useRouter } from 'expo-router';
 
-type WelcomeScreenProps = {
-    navigation: NativeStackNavigationProp<AuthStackParamList, 'Welcome'>;
-};
-
-export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ navigation }) => {
+export const WelcomeScreen = () => {
+    const router = useRouter();
     const insets = useSafeAreaInsets();
     const { theme } = useTheme();
 
@@ -49,14 +45,14 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ navigation }) => {
             <View style={[styles.footer, { paddingBottom: insets.bottom + 24 }]}>
                 <Button
                     title="Get Started"
-                    onPress={() => navigation.navigate('Signup')}
+                    onPress={() => router.push('/(auth)/signup')}
                     variant="primary"
                     size="large"
                     fullWidth
                 />
 
                 <Pressable
-                    onPress={() => navigation.navigate('Login')}
+                    onPress={() => router.push('/(auth)/login')}
                     style={styles.loginLink}
                 >
                     <Text style={[styles.loginText, { color: theme.colors.textSecondary }]}>
