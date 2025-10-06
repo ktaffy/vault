@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Pressable, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Alert, ActivityIndicator, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
@@ -8,6 +8,8 @@ import { Input } from '../../components/common';
 import * as DocumentPicker from 'expo-document-picker';
 import { useAudioPlayer, useAudioPlayerStatus, setAudioModeAsync } from 'expo-audio';
 import Slider from '@react-native-community/slider';
+
+const MAX_DURATION = 15;
 
 export const UploadScreen = () => {
     const insets = useSafeAreaInsets();
@@ -51,6 +53,8 @@ export const UploadScreen = () => {
             }
 
             setAudioDuration(durationInSeconds);
+            setStartTime(0);
+            setEndTime(Math.min(15, durationInSeconds));
         }
     }, [status.duration]);
 
@@ -88,8 +92,6 @@ export const UploadScreen = () => {
             }
 
             setAudioFile(file);
-            setStartTime(0);
-            setEndTime(15);
         } catch (error) {
             Alert.alert('Error', 'Failed to load audio file');
         }
@@ -123,6 +125,26 @@ export const UploadScreen = () => {
             }
         };
     }, []);
+
+    const handleStartTimeChange = (value: number) => {
+        setStartTime(value);
+        if (endTime - value > MAX_DURATION) {
+            setEndTime(value + MAX_DURATION);
+        }
+        if (endTime <= value) {
+            setEndTime(Math.min(value + 1, audioDuration));
+        }
+    };
+
+    const handleEndTimeChange = (value: number) => {
+        setEndTime(value);
+        if (value - startTime > MAX_DURATION) {
+            setStartTime(value - MAX_DURATION);
+        }
+        if (value <= startTime) {
+            setStartTime(Math.max(0, value - 1));
+        }
+    };
 
     const handleUpload = async () => {
         if (!title.trim()) {
@@ -166,7 +188,11 @@ export const UploadScreen = () => {
                 <View style={{ width: 28 }} />
             </View>
 
-            <View style={styles.content}>
+            <ScrollView
+                style={styles.scrollView}
+                contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 20 }]}
+                showsVerticalScrollIndicator={false}
+            >
                 <View style={styles.form}>
                     <View style={styles.inputGroup}>
                         <Text style={[styles.label, { color: theme.colors.text }]}>Title</Text>
@@ -220,7 +246,7 @@ export const UploadScreen = () => {
                     {audioFile && audioDuration >= 15 && (
                         <View style={styles.inputGroup}>
                             <View style={styles.trimHeader}>
-                                <Text style={[styles.label, { color: theme.colors.text }]}>Select Your Clip</Text>
+                                <Text style={[styles.label, { color: theme.colors.text }]}>Select Clip</Text>
                                 <Pressable style={styles.previewButton} onPress={playPreview}>
                                     <Ionicons name={isPlaying ? "pause" : "play"} size={16} color={theme.colors.primary} />
                                     <Text style={[styles.previewText, { color: theme.colors.primary }]}>
@@ -261,34 +287,34 @@ export const UploadScreen = () => {
                                         {formatTime(endTime)}
                                     </Text>
                                 </View>
-                                <View style={{ gap: 16 }}>
+                                <View style={styles.slidersContainer}>
                                     <View>
-                                        <Text style={[styles.helperText, { color: theme.colors.textSecondary, marginBottom: 8 }]}>
-                                            Start Position
+                                        <Text style={[styles.sliderLabel, { color: theme.colors.textSecondary }]}>
+                                            Start
                                         </Text>
                                         <Slider
                                             style={styles.slider}
                                             minimumValue={0}
-                                            maximumValue={Math.max(0, endTime - 1)}
+                                            maximumValue={audioDuration - 1}
                                             value={startTime}
-                                            onValueChange={setStartTime}
-                                            minimumTrackTintColor="transparent"
-                                            maximumTrackTintColor="transparent"
+                                            onValueChange={handleStartTimeChange}
+                                            minimumTrackTintColor={theme.colors.primary}
+                                            maximumTrackTintColor={theme.colors.textSecondary + '40'}
                                             thumbTintColor={theme.colors.primary}
                                         />
                                     </View>
                                     <View>
-                                        <Text style={[styles.helperText, { color: theme.colors.textSecondary, marginBottom: 8 }]}>
-                                            End Position (max 15s from start)
+                                        <Text style={[styles.sliderLabel, { color: theme.colors.textSecondary }]}>
+                                            End (max 15s)
                                         </Text>
                                         <Slider
                                             style={styles.slider}
-                                            minimumValue={Math.min(startTime + 1, audioDuration)}
-                                            maximumValue={Math.min(startTime + 15, audioDuration)}
+                                            minimumValue={1}
+                                            maximumValue={audioDuration}
                                             value={endTime}
-                                            onValueChange={setEndTime}
-                                            minimumTrackTintColor="transparent"
-                                            maximumTrackTintColor="transparent"
+                                            onValueChange={handleEndTimeChange}
+                                            minimumTrackTintColor={theme.colors.primary}
+                                            maximumTrackTintColor={theme.colors.textSecondary + '40'}
                                             thumbTintColor={theme.colors.primary}
                                         />
                                     </View>
@@ -296,27 +322,27 @@ export const UploadScreen = () => {
                             </View>
                         </View>
                     )}
-                </View>
 
-                <Pressable
-                    style={[styles.uploadButton, {
-                        backgroundColor: (!title.trim() || !audioFile || uploading)
-                            ? theme.colors.textSecondary + '40'
-                            : theme.colors.primary
-                    }]}
-                    onPress={handleUpload}
-                    disabled={!title.trim() || !audioFile || uploading}
-                >
-                    {uploading ? (
-                        <ActivityIndicator color="#FFFFFF" />
-                    ) : (
-                        <>
-                            <Ionicons name="cloud-upload" size={20} color="#FFFFFF" />
-                            <Text style={styles.uploadButtonText}>Upload Snippet</Text>
-                        </>
-                    )}
-                </Pressable>
-            </View>
+                    <Pressable
+                        style={[styles.uploadButton, {
+                            backgroundColor: (!title.trim() || !audioFile || uploading)
+                                ? theme.colors.textSecondary + '40'
+                                : theme.colors.primary
+                        }]}
+                        onPress={handleUpload}
+                        disabled={!title.trim() || !audioFile || uploading}
+                    >
+                        {uploading ? (
+                            <ActivityIndicator color="#FFFFFF" />
+                        ) : (
+                            <>
+                                <Ionicons name="cloud-upload" size={20} color="#FFFFFF" />
+                                <Text style={styles.uploadButtonText}>Upload Snippet</Text>
+                            </>
+                        )}
+                    </Pressable>
+                </View>
+            </ScrollView>
         </View>
     );
 };
@@ -342,15 +368,15 @@ const styles = StyleSheet.create({
         fontSize: 18,
         fontWeight: '600',
     },
-    content: {
+    scrollView: {
         flex: 1,
+    },
+    scrollContent: {
         paddingHorizontal: 24,
-        justifyContent: 'space-between',
-        paddingBottom: 40,
+        paddingTop: 8,
     },
     form: {
-        gap: 24,
-        paddingTop: 8,
+        gap: 20,
     },
     inputGroup: {
         gap: 8,
@@ -370,23 +396,23 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
     },
     fileEmpty: {
-        padding: 40,
+        padding: 32,
         alignItems: 'center',
-        gap: 8,
+        gap: 6,
     },
     fileEmptyText: {
-        fontSize: 16,
+        fontSize: 15,
         fontWeight: '600',
-        marginTop: 8,
+        marginTop: 6,
     },
     fileEmptySubtext: {
-        fontSize: 13,
+        fontSize: 12,
         fontWeight: '500',
     },
     fileSelected: {
         flexDirection: 'row',
         alignItems: 'center',
-        padding: 20,
+        padding: 16,
         gap: 12,
     },
     fileInfo: {
@@ -405,6 +431,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
+        marginBottom: 4,
     },
     previewButton: {
         flexDirection: 'row',
@@ -416,10 +443,10 @@ const styles = StyleSheet.create({
         fontWeight: '600',
     },
     trimContainer: {
-        padding: 20,
+        padding: 16,
         borderRadius: 16,
         borderWidth: 1,
-        gap: 12,
+        gap: 10,
     },
     timeLabels: {
         flexDirection: 'row',
@@ -427,36 +454,18 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     timeText: {
-        fontSize: 14,
-        fontWeight: '600',
-    },
-    slider: {
-        width: '100%',
-        height: 40,
-    },
-    uploadButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginTop: 20,
-        paddingVertical: 16,
-        borderRadius: 12,
-        gap: 8,
-    },
-    uploadButtonText: {
-        color: '#FFFFFF',
-        fontSize: 16,
+        fontSize: 13,
         fontWeight: '600',
     },
     timelineContainer: {
         width: '100%',
-        height: 60,
+        height: 50,
         justifyContent: 'center',
-        marginBottom: -10,
+        marginBottom: -8,
     },
     timelineTrack: {
         width: '100%',
-        height: 40,
+        height: 36,
         backgroundColor: 'rgba(150, 150, 150, 0.2)',
         borderRadius: 8,
         position: 'relative',
@@ -475,5 +484,32 @@ const styles = StyleSheet.create({
         width: 4,
         height: '60%',
         borderRadius: 2,
+    },
+    slidersContainer: {
+        gap: 10,
+        marginTop: 6,
+    },
+    sliderLabel: {
+        fontSize: 12,
+        fontWeight: '500',
+        marginBottom: 2,
+    },
+    slider: {
+        width: '100%',
+        height: 32,
+    },
+    uploadButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginTop: 8,
+        paddingVertical: 16,
+        borderRadius: 12,
+        gap: 8,
+    },
+    uploadButtonText: {
+        color: '#FFFFFF',
+        fontSize: 16,
+        fontWeight: '600',
     },
 });
