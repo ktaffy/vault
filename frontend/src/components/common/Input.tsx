@@ -60,7 +60,7 @@ export const Input: React.FC<InputProps> = ({
                     {
                         backgroundColor: getBackgroundColor(),
                         borderColor: getBorderColor(),
-                        borderWidth: isFocused ? 2 : 1,
+                        borderWidth: isFocused ? 1.5 : 0.5,
                     },
                 ]}
             >
