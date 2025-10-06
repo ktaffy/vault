@@ -1,7 +1,7 @@
 export const colors = {
-    primary: '#7042fcff',
+    primary: '#9B59D0',
     accent: '#b794f6',
-    accentDark: '#805ad5',
+    accentDark: '#8b4ac9',
 
     dark: {
         background: '#000000',
@@ -13,7 +13,6 @@ export const colors = {
         success: '#51cf66',
     },
 
-    // Light theme colors
     light: {
         background: '#ffffff',
         surface: '#f7fafc',
