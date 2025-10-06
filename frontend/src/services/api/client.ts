@@ -68,12 +68,6 @@ class ApiClient {
 
             if (!response.ok) {
                 const errorText = await response.text();
-                console.error('API Error Response:', {
-                    status: response.status,
-                    statusText: response.statusText,
-                    body: errorText
-                });
-
                 let errorData;
                 try {
                     errorData = JSON.parse(errorText);

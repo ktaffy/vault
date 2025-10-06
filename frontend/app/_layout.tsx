@@ -5,6 +5,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { View, ActivityIndicator } from 'react-native';
 import { ThemeProvider } from '../src/context/ThemeContext';
+import { ToastProvider } from '../src/context/ToastContext';
 import { store } from '../src/store/store';
 import { useAuth } from '../src/hooks/useAuth';
 import { useTheme } from '../src/hooks/useTheme';
@@ -57,7 +58,9 @@ export default function RootLayout() {
         <Provider store={store}>
             <SafeAreaProvider>
                 <ThemeProvider>
-                    <RootLayoutContent />
+                    <ToastProvider>
+                        <RootLayoutContent />
+                    </ToastProvider>
                 </ThemeProvider>
             </SafeAreaProvider>
         </Provider>

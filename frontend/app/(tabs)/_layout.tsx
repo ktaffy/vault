@@ -53,20 +53,19 @@ export default function TabsLayout() {
                     ),
                 }}
             />
-            {isArtist && (
                 <Tabs.Screen
                     name="artist"
                     options={{
                         tabBarIcon: ({ focused, color }) => (
                             <Ionicons
-                                name={focused ? 'add-circle' : 'add-circle-outline'}
+                                name={focused ? 'musical-notes' : 'musical-notes-outline'}
                                 size={22}
                                 color={color}
                             />
                         ),
                     }}
                 />
-            )}
+            
         </Tabs>
     );
 }

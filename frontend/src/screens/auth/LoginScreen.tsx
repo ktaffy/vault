@@ -6,8 +6,7 @@ import {
     KeyboardAvoidingView,
     Platform,
     Pressable,
-    ScrollView,
-    Alert
+    ScrollView
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -15,9 +14,11 @@ import { useTheme } from '../../hooks/useTheme';
 import { useAuth } from '../../hooks/useAuth';
 import { Button, Input } from '../../components/common';
 import { useRouter } from 'expo-router';
+import { useToast } from '../../context/ToastContext';
 
 export const LoginScreen = () => {
     const router = useRouter();
+    const { showToast } = useToast();
     const insets = useSafeAreaInsets();
     const { theme } = useTheme();
     const { login, loading } = useAuth();
@@ -27,14 +28,14 @@ export const LoginScreen = () => {
 
     const handleLogin = async () => {
         if (!identifier.trim() || !password.trim()) {
-            Alert.alert('Missing Fields', 'Please enter both email/username and password');
+            showToast('Please enter both email/username and password', 'error');
             return;
         }
 
         try {
             await login(identifier.trim(), password);
         } catch (error: any) {
-            Alert.alert('Login Failed', error.message || 'Please check your credentials');
+            showToast(error.message || 'Please check your credentials', 'error');
         }
     };
 

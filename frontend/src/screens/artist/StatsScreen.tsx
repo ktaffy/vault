@@ -2,19 +2,13 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../hooks/useTheme';
-import { RouteProp } from '@react-navigation/native';
-import { ArtistStackParamList } from '../../navigation/types';
+import { useLocalSearchParams } from 'expo-router';
 
-type StatsScreenRouteProp = RouteProp<ArtistStackParamList, 'SnippetStats'>;
-
-type Props = {
-    route: StatsScreenRouteProp;
-};
-
-export const StatsScreen = ({ route }: Props) => {
+export const StatsScreen = () => {
     const insets = useSafeAreaInsets();
     const { theme } = useTheme();
-    const { snippetId } = route.params;
+    const { id } = useLocalSearchParams();
+    const snippetId = Number(id);
 
     return (
         <View style={[styles.container, { backgroundColor: theme.colors.background }]}>

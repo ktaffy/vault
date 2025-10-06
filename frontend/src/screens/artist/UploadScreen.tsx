@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Pressable, Alert, ActivityIndicator, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ActivityIndicator, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
@@ -9,6 +9,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import { useAudioPlayer, useAudioPlayerStatus, setAudioModeAsync } from 'expo-audio';
 import Slider from '@react-native-community/slider';
 import { snippetService } from '../../services/api/snippets';
+import { useToast } from '../../context/ToastContext';
 
 const MAX_DURATION = 15;
 
@@ -16,6 +17,7 @@ export const UploadScreen = () => {
     const insets = useSafeAreaInsets();
     const { theme } = useTheme();
     const router = useRouter();
+    const { showToast } = useToast();
 
     const [title, setTitle] = useState('');
     const [audioFile, setAudioFile] = useState<any>(null);
@@ -48,7 +50,7 @@ export const UploadScreen = () => {
             const durationInSeconds = status.duration;
 
             if (durationInSeconds < 15) {
-                Alert.alert('Audio Too Short', 'Audio must be at least 15 seconds long');
+                showToast('Audio must be at least 15 seconds long', 'error');
                 setAudioFile(null);
                 return;
             }
@@ -81,20 +83,20 @@ export const UploadScreen = () => {
             const file = result.assets[0];
 
             if (!file.size) {
-                Alert.alert('Error', 'Could not determine file size');
+                showToast('Could not determine file size', 'error');
                 return;
             }
 
             const fileSizeInMB = file.size / (1024 * 1024);
 
             if (fileSizeInMB > 50) {
-                Alert.alert('File Too Large', 'Audio file must be under 50MB');
+                showToast('Audio file must be under 50MB', 'error');
                 return;
             }
 
             setAudioFile(file);
         } catch (error) {
-            Alert.alert('Error', 'Failed to load audio file');
+            showToast('Failed to load audio file', 'error');
         }
     };
 
@@ -149,12 +151,12 @@ export const UploadScreen = () => {
 
     const handleUpload = async () => {
         if (!title.trim()) {
-            Alert.alert('Missing Title', 'Please enter a title for your snippet');
+            showToast('Please enter a title for your snippet', 'error');
             return;
         }
 
         if (!audioFile) {
-            Alert.alert('Missing Audio', 'Please select an audio file');
+            showToast('Please select an audio file', 'error');
             return;
         }
 
@@ -173,11 +175,10 @@ export const UploadScreen = () => {
 
             const response = await snippetService.upload(formData);
 
-            Alert.alert('Success', 'Snippet uploaded successfully!', [
-                { text: 'OK', onPress: () => router.back() }
-            ]);
+            showToast('Snippet uploaded successfully!', 'success');
+            router.back();
         } catch (error: any) {
-            Alert.alert('Upload Failed', error.message || 'Something went wrong');
+            showToast(error.message || 'Something went wrong', 'error');
         } finally {
             setUploading(false);
         }

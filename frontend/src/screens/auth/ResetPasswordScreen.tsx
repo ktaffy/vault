@@ -6,8 +6,7 @@ import {
     KeyboardAvoidingView,
     Platform,
     Pressable,
-    ScrollView,
-    Alert
+    ScrollView
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -15,9 +14,11 @@ import { useTheme } from '../../hooks/useTheme';
 import { Button, Input } from '../../components/common';
 import { authService } from '../../services/api/auth';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useToast } from '../../context/ToastContext';
 
 export const ResetPasswordScreen = () => {
     const router = useRouter();
+    const { showToast } = useToast();
     const insets = useSafeAreaInsets();
     const { theme } = useTheme();
     const { token } = useLocalSearchParams<{ token: string }>();
@@ -48,13 +49,10 @@ export const ResetPasswordScreen = () => {
         setLoading(true);
         try {
             await authService.resetPassword({ token, new_password: password });
-            Alert.alert(
-                'Password Reset',
-                'Your password has been reset successfully. Please log in with your new password.',
-                [{ text: 'OK', onPress: () => router.push('/(auth)/login') }]
-            );
+            showToast('Your password has been reset successfully. Please log in with your new password.', 'success', 4000);
+            router.push('/(auth)/login');
         } catch (error: any) {
-            Alert.alert('Error', error.message || 'Failed to reset password. The link may have expired.');
+            showToast('Failed to reset password. The link may have expired.', 'error');
         } finally {
             setLoading(false);
         }

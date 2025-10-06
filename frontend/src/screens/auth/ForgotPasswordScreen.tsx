@@ -6,8 +6,7 @@ import {
     KeyboardAvoidingView,
     Platform,
     Pressable,
-    ScrollView,
-    Alert
+    ScrollView
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -15,9 +14,11 @@ import { useTheme } from '../../hooks/useTheme';
 import { Button, Input } from '../../components/common';
 import { authService } from '../../services/api/auth';
 import { useRouter } from 'expo-router';
+import { useToast } from '../../context/ToastContext';
 
 export const ForgotPasswordScreen = () => {
     const router = useRouter();
+    const { showToast } = useToast();
     const insets = useSafeAreaInsets();
     const { theme } = useTheme();
 
@@ -26,26 +27,23 @@ export const ForgotPasswordScreen = () => {
 
     const handleSubmit = async () => {
         if (!email.trim()) {
-            Alert.alert('Missing Field', 'Please enter your email address');
+            showToast('Please enter your email address', 'error');
             return;
         }
 
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(email.trim())) {
-            Alert.alert('Invalid Email', 'Please enter a valid email address');
+            showToast('Please enter a valid email address', 'error');
             return;
         }
 
         setLoading(true);
         try {
             await authService.forgotPassword({ email: email.trim() });
-            Alert.alert(
-                'Check Your Email',
-                'If an account exists with that email, you will receive a password reset link.',
-                [{ text: 'OK', onPress: () => router.back() }]
-            );
+            showToast('If an account exists with that email, you will receive a password reset link.', 'success', 4000);
+            router.back();
         } catch (error: any) {
-            Alert.alert('Error', error.message || 'Something went wrong');
+            showToast('Something went wrong', 'error');
         } finally {
             setLoading(false);
         }

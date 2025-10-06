@@ -6,8 +6,7 @@ import {
     KeyboardAvoidingView,
     Platform,
     Pressable,
-    ScrollView,
-    Alert
+    ScrollView
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -15,9 +14,11 @@ import { useTheme } from '../../hooks/useTheme';
 import { useAuth } from '../../hooks/useAuth';
 import { Button, Input } from '../../components/common';
 import { useRouter } from 'expo-router';
+import { useToast } from '../../context/ToastContext';
 
 export const SignupScreen = () => {
     const router = useRouter();
+    const { showToast } = useToast();
     const insets = useSafeAreaInsets();
     const { theme } = useTheme();
     const { signup, loading } = useAuth();
@@ -56,7 +57,7 @@ export const SignupScreen = () => {
             await signup(username.trim(), email.trim(), password);
             router.push('/(auth)/email-verification');
         } catch (error: any) {
-            Alert.alert('Signup Failed', error.message || 'Please try again');
+            showToast('Signup Failed, please try again', 'error');
         }
     };
 
