@@ -30,8 +30,8 @@ type Config struct {
 	SMTPPassword              string
 	FromEmail                 string
 
-	S3ExpressBucket string
-	S3Region        string
+	S3Bucket string
+	S3Region string
 }
 
 func Load() *Config {
@@ -59,8 +59,8 @@ func Load() *Config {
 		SMTPPassword:              getEnv("SMTP_PASSWORD"),
 		FromEmail:                 getEnv("FROM_EMAIL"),
 
-		S3ExpressBucket: getEnv("S3_EXPRESS_BUCKET"),
-		S3Region:        getEnv("S3_REGION"),
+		S3Bucket: getEnv("S3_EXPRESS_BUCKET"),
+		S3Region: getEnv("S3_REGION"),
 	}
 }
 

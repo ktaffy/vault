@@ -84,7 +84,7 @@ func DeleteAudioFile(audioURL string) error {
 		return err
 	}
 	_, err = s3Client.DeleteObject(context.TODO(), &s3.DeleteObjectInput{
-		Bucket: aws.String(cfg.S3ExpressBucket),
+		Bucket: aws.String(cfg.S3Bucket),
 		Key:    aws.String(key),
 	})
 	if err != nil {
@@ -118,7 +118,7 @@ func uploadToS3Express(audioFile []byte, filename string) (string, error) {
 
 	// Upload to S3 Express Directory bucket
 	_, err := s3Client.PutObject(context.TODO(), &s3.PutObjectInput{
-		Bucket:      aws.String(cfg.S3ExpressBucket),
+		Bucket:      aws.String(cfg.S3Bucket),
 		Key:         aws.String("audio/" + filename),
 		Body:        bytes.NewReader(audioFile),
 		ContentType: aws.String(contentType),
@@ -129,8 +129,8 @@ func uploadToS3Express(audioFile []byte, filename string) (string, error) {
 		return "", fmt.Errorf("S3 Express upload failed: %w", err)
 	}
 
-	audioURL := fmt.Sprintf("https://%s.s3express-%s.amazonaws.com/audio/%s",
-		cfg.S3ExpressBucket, cfg.S3Region, filename)
+	audioURL := fmt.Sprintf("https://%s.s3-%s.amazonaws.com/audio/%s",
+		cfg.S3Bucket, cfg.S3Region, filename)
 
 	return audioURL, nil
 }
