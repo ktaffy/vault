@@ -6,9 +6,8 @@ import { useTheme } from '../../hooks/useTheme';
 import { useRouter } from 'expo-router';
 import { Input } from '../../components/common';
 import * as DocumentPicker from 'expo-document-picker';
-import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
+import { useAudioPlayer, useAudioPlayerStatus, setAudioModeAsync } from 'expo-audio';
 import Slider from '@react-native-community/slider';
-import { setAudioModeAsync } from 'expo-audio';
 
 export const UploadScreen = () => {
     const insets = useSafeAreaInsets();
@@ -19,6 +18,7 @@ export const UploadScreen = () => {
     const [audioFile, setAudioFile] = useState<any>(null);
     const [audioDuration, setAudioDuration] = useState(0);
     const [startTime, setStartTime] = useState(0);
+    const [endTime, setEndTime] = useState(15);
     const [uploading, setUploading] = useState(false);
     const [isPlaying, setIsPlaying] = useState(false);
 
@@ -89,6 +89,7 @@ export const UploadScreen = () => {
 
             setAudioFile(file);
             setStartTime(0);
+            setEndTime(15);
         } catch (error) {
             Alert.alert('Error', 'Failed to load audio file');
         }
@@ -112,7 +113,7 @@ export const UploadScreen = () => {
         previewTimeoutRef.current = setTimeout(() => {
             player.pause();
             player.seekTo(startTime);
-        }, 15000);
+        }, (endTime - startTime) * 1000);
     };
 
     useEffect(() => {
@@ -154,9 +155,6 @@ export const UploadScreen = () => {
             setUploading(false);
         }
     };
-
-    const endTime = Math.min(startTime + 15, audioDuration);
-    const maxStartTime = Math.max(0, audioDuration - 15);
 
     return (
         <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
@@ -222,7 +220,7 @@ export const UploadScreen = () => {
                     {audioFile && audioDuration >= 15 && (
                         <View style={styles.inputGroup}>
                             <View style={styles.trimHeader}>
-                                <Text style={[styles.label, { color: theme.colors.text }]}>Select 15-Second Clip</Text>
+                                <Text style={[styles.label, { color: theme.colors.text }]}>Select Your Clip</Text>
                                 <Pressable style={styles.previewButton} onPress={playPreview}>
                                     <Ionicons name={isPlaying ? "pause" : "play"} size={16} color={theme.colors.primary} />
                                     <Text style={[styles.previewText, { color: theme.colors.primary }]}>
@@ -243,7 +241,7 @@ export const UploadScreen = () => {
                                                     backgroundColor: theme.colors.primary + '20',
                                                     borderColor: theme.colors.primary,
                                                     left: `${(startTime / audioDuration) * 100}%`,
-                                                    width: `${(15 / audioDuration) * 100}%`,
+                                                    width: `${((endTime - startTime) / audioDuration) * 100}%`,
                                                 }
                                             ]}
                                         >
@@ -257,25 +255,44 @@ export const UploadScreen = () => {
                                         {formatTime(startTime)}
                                     </Text>
                                     <Text style={[styles.timeText, { color: theme.colors.primary, fontWeight: '700' }]}>
-                                        15s
+                                        {formatTime(endTime - startTime)}
                                     </Text>
                                     <Text style={[styles.timeText, { color: theme.colors.text }]}>
                                         {formatTime(endTime)}
                                     </Text>
                                 </View>
-                                <Slider
-                                    style={styles.slider}
-                                    minimumValue={0}
-                                    maximumValue={maxStartTime}
-                                    value={startTime}
-                                    onValueChange={setStartTime}
-                                    minimumTrackTintColor="transparent"
-                                    maximumTrackTintColor="transparent"
-                                    thumbTintColor={theme.colors.primary}
-                                />
-                                <Text style={[styles.helperText, { color: theme.colors.textSecondary, textAlign: 'center' }]}>
-                                    Drag to position the 15-second window
-                                </Text>
+                                <View style={{ gap: 16 }}>
+                                    <View>
+                                        <Text style={[styles.helperText, { color: theme.colors.textSecondary, marginBottom: 8 }]}>
+                                            Start Position
+                                        </Text>
+                                        <Slider
+                                            style={styles.slider}
+                                            minimumValue={0}
+                                            maximumValue={Math.max(0, endTime - 1)}
+                                            value={startTime}
+                                            onValueChange={setStartTime}
+                                            minimumTrackTintColor="transparent"
+                                            maximumTrackTintColor="transparent"
+                                            thumbTintColor={theme.colors.primary}
+                                        />
+                                    </View>
+                                    <View>
+                                        <Text style={[styles.helperText, { color: theme.colors.textSecondary, marginBottom: 8 }]}>
+                                            End Position (max 15s from start)
+                                        </Text>
+                                        <Slider
+                                            style={styles.slider}
+                                            minimumValue={Math.min(startTime + 1, audioDuration)}
+                                            maximumValue={Math.min(startTime + 15, audioDuration)}
+                                            value={endTime}
+                                            onValueChange={setEndTime}
+                                            minimumTrackTintColor="transparent"
+                                            maximumTrackTintColor="transparent"
+                                            thumbTintColor={theme.colors.primary}
+                                        />
+                                    </View>
+                                </View>
                             </View>
                         </View>
                     )}
