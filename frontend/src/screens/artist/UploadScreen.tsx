@@ -8,6 +8,7 @@ import { Input } from '../../components/common';
 import * as DocumentPicker from 'expo-document-picker';
 import { useAudioPlayer, useAudioPlayerStatus, setAudioModeAsync } from 'expo-audio';
 import Slider from '@react-native-community/slider';
+import { snippetService } from '../../services/api/snippets';
 
 const MAX_DURATION = 15;
 
@@ -162,11 +163,15 @@ export const UploadScreen = () => {
         try {
             const formData = new FormData();
             formData.append('title', title.trim());
+            formData.append('start_time', startTime.toString());
+            formData.append('end_time', endTime.toString());
             formData.append('audio', {
                 uri: audioFile.uri,
                 type: audioFile.mimeType || 'audio/mpeg',
                 name: audioFile.name,
             } as any);
+
+            const response = await snippetService.upload(formData);
 
             Alert.alert('Success', 'Snippet uploaded successfully!', [
                 { text: 'OK', onPress: () => router.back() }

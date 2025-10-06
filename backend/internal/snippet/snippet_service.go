@@ -25,7 +25,7 @@ func NewService(repo Repo) Service {
 }
 
 func (s *service) UploadSnippet(c context.Context, artistID int64, req *UploadReq, audioFile []byte, filename string) (*UploadRes, error) {
-	ctx, cancel := context.WithTimeout(c, s.timeOut)
+	ctx, cancel := context.WithTimeout(c, 2*time.Minute)
 	defer cancel()
 
 	existingSnippet, err := s.Repo.GetSnippetByArtistID(ctx, artistID)

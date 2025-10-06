@@ -57,7 +57,7 @@ func UploadAudioFile(audioFile []byte, filename string) (string, error) {
 		return "", fmt.Errorf("audio file is empty")
 	}
 
-	if len(audioFile) > 5*1024*1024 {
+	if len(audioFile) > 10*1024*1024 {
 		return "", fmt.Errorf("file size exceeds 5MB limit")
 	}
 
@@ -164,7 +164,7 @@ func ValidateAudioFile(audioData []byte, filename string) error {
 		return fmt.Errorf("audio file is empty")
 	}
 
-	if len(audioData) > 5*1024*1024 {
+	if len(audioData) > 50*1024*1024 {
 		return fmt.Errorf("file size exceeds 5MB limit")
 	}
 
@@ -182,7 +182,7 @@ func ValidateAudioFile(audioData []byte, filename string) error {
 
 func TrimAudioFile(audioFile []byte, filename string, startTime, endTime float64) ([]byte, error) {
 	if startTime < 0 || endTime <= startTime {
-		return nil, fmt.Errorf("invalid trim times")
+		return nil, fmt.Errorf("invalid trim times: start=%f, end=%f", startTime, endTime)
 	}
 
 	if endTime-startTime > 15.0 {

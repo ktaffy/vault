@@ -1,6 +1,7 @@
 package snippet
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 	"strconv"
@@ -29,7 +30,7 @@ func (h *Handler) UploadSnippet(c *gin.Context) {
 		return
 	}
 
-	err := c.Request.ParseMultipartForm(5 << 20) // 5MB max
+	err := c.Request.ParseMultipartForm(50 << 20)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to parse form"})
 		return
@@ -53,15 +54,21 @@ func (h *Handler) UploadSnippet(c *gin.Context) {
 	endTime := 15.0
 
 	if startTimeStr != "" {
-		if st, err := strconv.ParseFloat(startTimeStr, 64); err == nil {
-			startTime = st
+		st, err := strconv.ParseFloat(startTimeStr, 64)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("invalid start_time: %s", startTimeStr)})
+			return
 		}
+		startTime = st
 	}
 
 	if endTimeStr != "" {
-		if et, err := strconv.ParseFloat(endTimeStr, 64); err == nil {
-			endTime = et
+		et, err := strconv.ParseFloat(endTimeStr, 64)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("invalid end_time: %s", endTimeStr)})
+			return
 		}
+		endTime = et
 	}
 
 	if endTime-startTime > 15.0 {
@@ -70,7 +77,7 @@ func (h *Handler) UploadSnippet(c *gin.Context) {
 	}
 
 	if startTime < 0 || endTime <= startTime {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid trim times"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("invalid trim times: start=%f, end=%f", startTime, endTime)})
 		return
 	}
 
@@ -81,8 +88,8 @@ func (h *Handler) UploadSnippet(c *gin.Context) {
 	}
 	defer file.Close()
 
-	if fileHeader.Size > 5*1024*1024 { // 5MB
-		c.JSON(http.StatusBadRequest, gin.H{"error": "file size exceeds 5MB limit"})
+	if fileHeader.Size > 50*1024*1024 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "file size exceeds 50MB limit"})
 		return
 	}
 
@@ -98,7 +105,9 @@ func (h *Handler) UploadSnippet(c *gin.Context) {
 	}
 
 	req := &UploadReq{
-		Title: title,
+		Title:     title,
+		StartTime: startTime,
+		EndTime:   endTime,
 	}
 
 	resp, err := h.Service.UploadSnippet(c.Request.Context(), artistID.(int64), req, audioData, fileHeader.Filename)

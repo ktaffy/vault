@@ -41,11 +41,7 @@ export interface ArtistStats {
 }
 
 export const snippetService = {
-    upload: async (title: string, audioFile: File | Blob): Promise<UploadSnippetResponse> => {
-        const formData = new FormData();
-        formData.append('title', title);
-        formData.append('audio', audioFile);
-
+    upload: async (formData: FormData): Promise<UploadSnippetResponse> => {
         return apiClient.post<UploadSnippetResponse>('/snippet/upload', formData, true);
     },
 
