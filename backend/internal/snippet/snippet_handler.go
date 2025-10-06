@@ -46,6 +46,34 @@ func (h *Handler) UploadSnippet(c *gin.Context) {
 		return
 	}
 
+	startTimeStr := c.PostForm("start_time")
+	endTimeStr := c.PostForm("end_time")
+
+	startTime := 0.0
+	endTime := 15.0
+
+	if startTimeStr != "" {
+		if st, err := strconv.ParseFloat(startTimeStr, 64); err == nil {
+			startTime = st
+		}
+	}
+
+	if endTimeStr != "" {
+		if et, err := strconv.ParseFloat(endTimeStr, 64); err == nil {
+			endTime = et
+		}
+	}
+
+	if endTime-startTime > 15.0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "snippet cannot exceed 15 seconds"})
+		return
+	}
+
+	if startTime < 0 || endTime <= startTime {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid trim times"})
+		return
+	}
+
 	file, fileHeader, err := c.Request.FormFile("audio")
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "audio file is required"})

@@ -20,7 +20,9 @@ type Snippet struct {
 }
 
 type UploadReq struct {
-	Title string `json:"title" form:"title" binding:"required,max=100"`
+	Title     string  `json:"title" form:"title" binding:"required,max=100"`
+	StartTime float64 `json:"start_time" form:"start_time"`
+	EndTime   float64 `json:"end_time" form:"end_time"`
 }
 
 type UploadRes struct {

@@ -6,6 +6,8 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
+	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
@@ -176,4 +178,50 @@ func ValidateAudioFile(audioData []byte, filename string) error {
 	}
 
 	return nil
+}
+
+func TrimAudioFile(audioFile []byte, filename string, startTime, endTime float64) ([]byte, error) {
+	if startTime < 0 || endTime <= startTime {
+		return nil, fmt.Errorf("invalid trim times")
+	}
+
+	if endTime-startTime > 15.0 {
+		return nil, fmt.Errorf("trimmed audio cannot exceed 15 seconds")
+	}
+
+	tmpInputFile := filepath.Join("/tmp", "input_"+generateRandomString(8)+filepath.Ext(filename))
+	tmpOutputFile := filepath.Join("/tmp", "output_"+generateRandomString(8)+".mp3")
+
+	if err := os.WriteFile(tmpInputFile, audioFile, 0644); err != nil {
+		return nil, fmt.Errorf("failed to write temp input file: %w", err)
+	}
+	defer os.Remove(tmpInputFile)
+	defer os.Remove(tmpOutputFile)
+
+	duration := fmt.Sprintf("%.2f", endTime-startTime)
+	startTimeStr := fmt.Sprintf("%.2f", startTime)
+
+	cmd := exec.Command("ffmpeg",
+		"-i", tmpInputFile,
+		"-ss", startTimeStr,
+		"-t", duration,
+		"-acodec", "libmp3lame",
+		"-b:a", "192k",
+		"-y",
+		tmpOutputFile,
+	)
+
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+
+	if err := cmd.Run(); err != nil {
+		return nil, fmt.Errorf("ffmpeg failed: %w, stderr: %s", err, stderr.String())
+	}
+
+	trimmedData, err := os.ReadFile(tmpOutputFile)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read trimmed file: %w", err)
+	}
+
+	return trimmedData, nil
 }

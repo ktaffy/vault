@@ -40,7 +40,12 @@ func (s *service) UploadSnippet(c context.Context, artistID int64, req *UploadRe
 		return nil, err
 	}
 
-	audioURL, err := util.UploadAudioFile(audioFile, filename)
+	trimmedAudio, err := util.TrimAudioFile(audioFile, filename, req.StartTime, req.EndTime)
+	if err != nil {
+		return nil, fmt.Errorf("failed to trim audio: %w", err)
+	}
+
+	audioURL, err := util.UploadAudioFile(trimmedAudio, filename)
 	if err != nil {
 		return nil, fmt.Errorf("failed to upload audio file: %w", err)
 	}
