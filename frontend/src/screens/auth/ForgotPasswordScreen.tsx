@@ -12,55 +12,46 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
-import { useAuth } from '../../hooks/useAuth';
 import { Button, Input } from '../../components/common';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { AuthStackParamList } from '../../navigation/types';
+import { authService } from '../../services/api/auth';
 
-type SignupScreenProps = {
-    navigation: NativeStackNavigationProp<AuthStackParamList, 'Signup'>;
+type ForgotPasswordScreenProps = {
+    navigation: NativeStackNavigationProp<AuthStackParamList, 'ForgotPassword'>;
 };
 
-export const SignupScreen: React.FC<SignupScreenProps> = ({ navigation }) => {
+export const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navigation }) => {
     const insets = useSafeAreaInsets();
     const { theme } = useTheme();
-    const { signup, loading } = useAuth();
 
-    const [username, setUsername] = useState('');
     const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const [errors, setErrors] = useState<{ [key: string]: string }>({});
+    const [loading, setLoading] = useState(false);
 
-    const validateForm = () => {
-        const newErrors: { [key: string]: string } = {};
-
-        if (username.trim().length < 3) {
-            newErrors.username = 'Username must be at least 3 characters';
+    const handleSubmit = async () => {
+        if (!email.trim()) {
+            Alert.alert('Missing Field', 'Please enter your email address');
+            return;
         }
 
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(email.trim())) {
-            newErrors.email = 'Please enter a valid email';
-        }
-
-        if (password.length < 8) {
-            newErrors.password = 'Password must be at least 8 characters';
-        }
-
-        setErrors(newErrors);
-        return Object.keys(newErrors).length === 0;
-    };
-
-    const handleSignup = async () => {
-        if (!validateForm()) {
+            Alert.alert('Invalid Email', 'Please enter a valid email address');
             return;
         }
 
+        setLoading(true);
         try {
-            await signup(username.trim(), email.trim(), password);
-            navigation.navigate('EmailVerification');
+            await authService.forgotPassword({ email: email.trim() });
+            Alert.alert(
+                'Check Your Email',
+                'If an account exists with that email, you will receive a password reset link.',
+                [{ text: 'OK', onPress: () => navigation.goBack() }]
+            );
         } catch (error: any) {
-            Alert.alert('Signup Failed', error.message || 'Please try again');
+            Alert.alert('Error', error.message || 'Something went wrong');
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -89,65 +80,29 @@ export const SignupScreen: React.FC<SignupScreenProps> = ({ navigation }) => {
                     <View style={styles.content}>
                         <View style={styles.titleSection}>
                             <Text style={[styles.title, { color: theme.colors.text }]}>
-                                Create account
+                                Reset password
+                            </Text>
+                            <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>
+                                Enter your email and we'll send you a link to reset your password
                             </Text>
                         </View>
 
                         <View style={styles.form}>
                             <Input
-                                value={username}
-                                onChangeText={(text) => {
-                                    setUsername(text);
-                                    if (errors.username) {
-                                        setErrors({ ...errors, username: '' });
-                                    }
-                                }}
-                                autoCapitalize="none"
-                                autoCorrect={false}
-                                returnKeyType="next"
-                                placeholder="Username"
-                                error={errors.username}
-                            />
-
-                            <Input
                                 value={email}
-                                onChangeText={(text) => {
-                                    setEmail(text);
-                                    if (errors.email) {
-                                        setErrors({ ...errors, email: '' });
-                                    }
-                                }}
+                                onChangeText={setEmail}
                                 autoCapitalize="none"
                                 autoCorrect={false}
                                 keyboardType="email-address"
-                                returnKeyType="next"
+                                returnKeyType="send"
+                                onSubmitEditing={handleSubmit}
                                 placeholder="Email"
-                                error={errors.email}
                             />
-
-                            <Input
-                                value={password}
-                                onChangeText={(text) => {
-                                    setPassword(text);
-                                    if (errors.password) {
-                                        setErrors({ ...errors, password: '' });
-                                    }
-                                }}
-                                isPassword
-                                returnKeyType="go"
-                                onSubmitEditing={handleSignup}
-                                placeholder="Password"
-                                error={errors.password}
-                            />
-
-                            <Text style={[styles.termsText, { color: theme.colors.textSecondary }]}>
-                                By signing up, you agree to our Terms of Service and Privacy Policy
-                            </Text>
                         </View>
 
                         <Button
-                            title="Sign Up"
-                            onPress={handleSignup}
+                            title="Send Reset Link"
+                            onPress={handleSubmit}
                             variant="primary"
                             size="large"
                             fullWidth
@@ -164,7 +119,7 @@ export const SignupScreen: React.FC<SignupScreenProps> = ({ navigation }) => {
                     style={styles.loginButton}
                 >
                     <Text style={[styles.loginText, { color: theme.colors.textSecondary }]}>
-                        Already have an account?{' '}
+                        Remember your password?{' '}
                         <Text style={{ color: theme.colors.text, fontWeight: '600' }}>
                             Log in
                         </Text>
@@ -206,16 +161,14 @@ const styles = StyleSheet.create({
         fontSize: 28,
         fontWeight: '700',
         letterSpacing: -0.5,
+        marginBottom: 12,
+    },
+    subtitle: {
+        fontSize: 15,
+        lineHeight: 21,
     },
     form: {
-        gap: 12,
         marginBottom: 24,
-    },
-    termsText: {
-        fontSize: 12,
-        lineHeight: 16,
-        textAlign: 'center',
-        marginTop: 8,
     },
     footer: {
         borderTopWidth: StyleSheet.hairlineWidth,
