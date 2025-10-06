@@ -1,12 +1,14 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { authService } from '../services/api/auth';
+import { secureStorage } from '../services/storage/SecureStorage';
 import {
     setUser,
     setAccessToken,
     clearAuth,
     setLoading,
     setError,
+    setAuthenticated,
     selectUser,
     selectIsAuthenticated,
     selectAuthLoading,
@@ -21,14 +23,27 @@ export const useAuth = () => {
     const loading = useSelector(selectAuthLoading);
     const error = useSelector(selectAuthError);
 
+    const checkAuth = useCallback(async () => {
+        dispatch(setLoading(true));
+        try {
+            const token = await secureStorage.getAccessToken();
+            if (token) {
+                dispatch(setAccessToken(token));
+                dispatch(setAuthenticated(true));
+            }
+        } catch (error) {
+            console.error('Auth check failed:', error);
+        } finally {
+            dispatch(setLoading(false));
+        }
+    }, [dispatch]);
+
     const signup = useCallback(async (username: string, email: string, password: string) => {
         dispatch(setLoading(true));
         dispatch(setError(null));
 
         try {
-            console.log('Attempting signup with:', { username, email, password: '***' });
             const response = await authService.signup({ username, email, password });
-            console.log('Signup response:', response);
             dispatch(setUser({
                 id: response.id,
                 username: response.username,
@@ -36,7 +51,6 @@ export const useAuth = () => {
             }));
             return response;
         } catch (err: any) {
-            console.error('Signup error details:', err);
             const errorMessage = err.message || 'Signup failed';
             dispatch(setError(errorMessage));
             throw err;
@@ -51,12 +65,17 @@ export const useAuth = () => {
 
         try {
             const response = await authService.login({ identifier, password });
+
+            await secureStorage.saveAccessToken(response.access_token);
+
             dispatch(setAccessToken(response.access_token));
             dispatch(setUser({
                 id: response.user.id,
                 username: response.user.username,
                 email: response.user.email,
             }));
+            dispatch(setAuthenticated(true));
+
             return response;
         } catch (err: any) {
             const errorMessage = err.message || 'Login failed';
@@ -65,7 +84,7 @@ export const useAuth = () => {
         } finally {
             dispatch(setLoading(false));
         }
-    }, [dispatch])
+    }, [dispatch]);
 
     const logout = useCallback(async () => {
         dispatch(setLoading(true));
@@ -75,28 +94,8 @@ export const useAuth = () => {
         } catch (err) {
             console.error('Logout error:', err);
         } finally {
+            await secureStorage.deleteAccessToken();
             dispatch(clearAuth());
-            dispatch(setLoading(false));
-        }
-    }, [dispatch]);
-
-    const updateProfile = useCallback(async (username?: string, email?: string) => {
-        dispatch(setLoading(true));
-        dispatch(setError(null));
-
-        try {
-            const response = await authService.updateProfile({ username, email });
-            dispatch(setUser({
-                id: response.user.id,
-                username: response.user.username,
-                email: response.user.email,
-            }));
-            return response;
-        } catch (err: any) {
-            const errorMessage = err.message || 'Update failed';
-            dispatch(setError(errorMessage));
-            throw err;
-        } finally {
             dispatch(setLoading(false));
         }
     }, [dispatch]);
@@ -109,6 +108,6 @@ export const useAuth = () => {
         signup,
         login,
         logout,
-        updateProfile,
+        checkAuth,
     };
 };

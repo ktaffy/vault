@@ -13,7 +13,7 @@ end:
 server:
 	cd backend && go run cmd/main.go
 app:
-	cd frontend && npx expo start --tunnel
+	cd frontend && npx expo start --clear --tunnel
 
 db-table:
 	docker exec -it vault-vault-1 psql -U vault -d vault -c "\d $(table)"
