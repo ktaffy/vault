@@ -1,7 +1,7 @@
 import { apiClient } from './client';
 
 export interface FeedSnippet {
-    id: number;
+    snippet_id: number;
     title: string;
     artist_id: number;
     artist_name: string;
@@ -13,8 +13,13 @@ export interface FeedSnippet {
     uploaded_at?: string;
 }
 
+export interface FeedResponse {
+    snippet: FeedSnippet;
+    message?: string;
+}
+
 export const feedService = {
-    getNextSnippet: async (): Promise<FeedSnippet | null> => {
-        return apiClient.get<FeedSnippet | null>('/feed/next', true);
+    getNextSnippet: async (): Promise<FeedResponse | null> => {
+        return apiClient.get<FeedResponse | null>('/feed/next', true);
     },
 };

@@ -1,7 +1,7 @@
 import { clearAuth } from "../../store/slices/authSlice";
 import { store } from "../../store/store";
 
-const BASE_URL = 'http://localhost:8080'
+const BASE_URL = 'https://medieval-jeanne-tormentingly.ngrok-free.dev'
 
 interface RequestConfig {
     method: 'GET' | 'POST' | 'PUT' | 'DELETE';
@@ -67,8 +67,21 @@ class ApiClient {
             }
 
             if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.message || `Request failed with status ${response.status}`);
+                const errorText = await response.text();
+                console.error('API Error Response:', {
+                    status: response.status,
+                    statusText: response.statusText,
+                    body: errorText
+                });
+
+                let errorData;
+                try {
+                    errorData = JSON.parse(errorText);
+                } catch {
+                    errorData = { message: errorText };
+                }
+
+                throw new Error(errorData.error || errorData.message || `Request failed with status ${response.status}`);
             }
 
             const contentType = response.headers.get('content-type');
