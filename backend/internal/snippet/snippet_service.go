@@ -101,14 +101,12 @@ func (s *service) UpdateSnippet(c context.Context, artistID int64, req *UpdateRe
 
 	updatedSnippet, err := s.Repo.UpdateSnippet(ctx, artistID, snippet)
 	if err != nil {
-		// If DB update fails, cleanup the new file we just uploaded
-		go util.DeleteAudioFile(audioURL) // Run in background
+		go util.DeleteAudioFile(audioURL)
 		return nil, fmt.Errorf("failed to update snippet: %w", err)
 	}
 
 	go func() {
 		if err := util.DeleteAudioFile(existingSnippet.AudioURL); err != nil {
-			// Log error but don't fail the request
 			fmt.Printf("Warning: failed to delete old audio file %s: %v\n", existingSnippet.AudioURL, err)
 		}
 	}()
@@ -123,16 +121,24 @@ func (s *service) UpdateSnippet(c context.Context, artistID int64, req *UpdateRe
 	return res, nil
 }
 
-func (s *service) DeleteSnippet(c context.Context, artistID int64) error {
+func (s *service) DeleteSnippet(c context.Context, artistID, snippetID int64) error {
 	ctx, cancel := context.WithTimeout(c, s.timeOut)
 	defer cancel()
 
-	existingSnippet, err := s.Repo.GetSnippetByArtistID(ctx, artistID)
+	isOwner, err := s.Repo.IsSnippetOwnedByArtist(ctx, snippetID, artistID)
 	if err != nil {
-		return fmt.Errorf("no snippet found to delete")
+		return fmt.Errorf("failed to verify snippet ownership: %w", err)
+	}
+	if !isOwner {
+		return fmt.Errorf("unauthorized: snippet does not belong to this artist")
 	}
 
-	err = s.Repo.DeleteSnippet(ctx, artistID)
+	existingSnippet, err := s.Repo.GetSnippetByID(ctx, snippetID)
+	if err != nil {
+		return fmt.Errorf("snippet not found")
+	}
+
+	err = s.Repo.DeleteSnippet(ctx, snippetID)
 	if err != nil {
 		return fmt.Errorf("failed to delete snippet from database: %w", err)
 	}

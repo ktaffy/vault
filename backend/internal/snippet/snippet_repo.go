@@ -106,9 +106,9 @@ func (r *repo) UpdateSnippet(ctx context.Context, artistID int64, snippet *Snipp
 	return snippet, nil
 }
 
-func (r *repo) DeleteSnippet(ctx context.Context, artistID int64) error {
-	query := `DELETE FROM snippets WHERE artist_id = $1`
-	result, err := r.db.ExecContext(ctx, query, artistID)
+func (r *repo) DeleteSnippet(ctx context.Context, snippetID int64) error {
+	query := `DELETE FROM snippets WHERE id = $1`
+	result, err := r.db.ExecContext(ctx, query, snippetID)
 	if err != nil {
 		return err
 	}
@@ -119,7 +119,7 @@ func (r *repo) DeleteSnippet(ctx context.Context, artistID int64) error {
 	}
 
 	if rowsAffected == 0 {
-		return fmt.Errorf("no snippet found for artist")
+		return fmt.Errorf("no snippet found with id %d", snippetID)
 	}
 
 	return nil
@@ -186,4 +186,11 @@ func (r *repo) GetAllSnippetsByArtist(ctx context.Context, artistID int64) ([]*S
 	}
 
 	return snippets, nil
+}
+
+func (r *repo) IsSnippetOwnedByArtist(ctx context.Context, snippetID, artistID int64) (bool, error) {
+	var exists bool
+	query := `SELECT EXISTS(SELECT 1 FROM snippets WHERE id = $1 AND artist_id = $2)`
+	err := r.db.QueryRowContext(ctx, query, snippetID, artistID).Scan(&exists)
+	return exists, err
 }

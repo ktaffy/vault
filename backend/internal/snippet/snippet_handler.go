@@ -202,7 +202,16 @@ func (h *Handler) DeleteSnippet(c *gin.Context) {
 		return
 	}
 
-	err := h.Service.DeleteSnippet(c.Request.Context(), artistID.(int64))
+	var req struct {
+		SnippetID int64 `json:"snippet_id" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "snippet_id is required"})
+		return
+	}
+
+	err := h.Service.DeleteSnippet(c.Request.Context(), artistID.(int64), req.SnippetID)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return

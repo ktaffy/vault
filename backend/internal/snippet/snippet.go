@@ -47,8 +47,9 @@ type Repo interface {
 	CreateSnippet(ctx context.Context, snippet *Snippet) (*Snippet, error)
 	GetSnippetByArtistID(ctx context.Context, artistID int64) (*Snippet, error)
 	UpdateSnippet(ctx context.Context, artistID int64, snippet *Snippet) (*Snippet, error)
-	DeleteSnippet(ctx context.Context, artistID int64) error
+	DeleteSnippet(ctx context.Context, snippetID int64) error
 	GetSnippetByID(ctx context.Context, snippetID int64) (*Snippet, error)
+	IsSnippetOwnedByArtist(ctx context.Context, snippetID, artistID int64) (bool, error)
 	GetAllSnippetsByArtist(ctx context.Context, artistID int64) ([]*Snippet, error)
 }
 
@@ -56,7 +57,7 @@ type Service interface {
 	UploadSnippet(c context.Context, artistID int64, req *UploadReq, audioFile []byte, filename string) (*UploadRes, error)
 	GetSnippet(c context.Context, artistID int64) (*Snippet, error)
 	UpdateSnippet(c context.Context, artistID int64, req *UpdateReq, audioFile []byte, filename string) (*UpdateRes, error)
-	DeleteSnippet(c context.Context, artistID int64) error
+	DeleteSnippet(c context.Context, artistID int64, snippetID int64) error
 	GetSnippetByID(c context.Context, snippetID int64) (*Snippet, error)
 	GetAllSnippets(c context.Context, artistID int64) ([]*Snippet, error)
 }
