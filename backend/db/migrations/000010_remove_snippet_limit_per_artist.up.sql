@@ -1,0 +1,1 @@
+ALTER TABLE snippets DROP CONSTRAINT snippets_artist_id_key;
