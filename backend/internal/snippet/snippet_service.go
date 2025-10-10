@@ -2,7 +2,6 @@ package snippet
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"time"
 
@@ -27,14 +26,6 @@ func NewService(repo Repo) Service {
 func (s *service) UploadSnippet(c context.Context, artistID int64, req *UploadReq, audioFile []byte, filename string) (*UploadRes, error) {
 	ctx, cancel := context.WithTimeout(c, 2*time.Minute)
 	defer cancel()
-
-	existingSnippet, err := s.Repo.GetSnippetByArtistID(ctx, artistID)
-	if err != nil && err != sql.ErrNoRows {
-		return nil, fmt.Errorf("failed to check existing snippet: %w", err)
-	}
-	if existingSnippet != nil {
-		return nil, fmt.Errorf("artist already has a snippet uploaded")
-	}
 
 	if err := util.ValidateAudioFile(audioFile, filename); err != nil {
 		return nil, err
@@ -165,4 +156,15 @@ func (s *service) GetSnippetByID(c context.Context, snippetID int64) (*Snippet, 
 	}
 
 	return snippet, nil
+}
+
+func (s *service) GetAllSnippets(c context.Context, artistID int64) ([]*Snippet, error) {
+	ctx, cancel := context.WithTimeout(c, s.timeOut)
+	defer cancel()
+
+	snippets, err := s.Repo.GetAllSnippetsByArtist(ctx, artistID)
+	if err != nil {
+		return nil, err
+	}
+	return snippets, nil
 }

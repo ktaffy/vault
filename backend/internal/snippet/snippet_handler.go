@@ -135,6 +135,22 @@ func (h *Handler) GetArtistSnippet(c *gin.Context) {
 	c.JSON(http.StatusOK, snippet)
 }
 
+func (h *Handler) GetAllArtistSnippets(c *gin.Context) {
+	artistID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+
+	snippets, err := h.Service.GetAllSnippets(c.Request.Context(), artistID.(int64))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"snippets": snippets})
+}
+
 func (h *Handler) UpdateSnippet(c *gin.Context) {
 	artistID, exists := c.Get("user_id")
 	if !exists {

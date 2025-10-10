@@ -39,6 +39,7 @@ func InitRouter(userHandler *user.Handler, snippetHandler *snippet.Handler, swip
 	r.PUT("/snippet/update", middleware.JWTAuth(), snippetHandler.UpdateSnippet)
 	r.DELETE("/snippet/delete", middleware.JWTAuth(), snippetHandler.DeleteSnippet)
 	r.GET("/snippet/artist", middleware.JWTAuth(), snippetHandler.GetArtistSnippet)
+	r.GET("/snippets/artist", middleware.JWTAuth(), snippetHandler.GetAllArtistSnippets)
 
 	// SWIPE
 	// Protected

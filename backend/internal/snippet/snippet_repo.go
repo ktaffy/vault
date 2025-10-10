@@ -151,3 +151,39 @@ func (r *repo) GetSnippetByID(ctx context.Context, snippetID int64) (*Snippet, e
 
 	return s, nil
 }
+
+func (r *repo) GetAllSnippetsByArtist(ctx context.Context, artistID int64) ([]*Snippet, error) {
+	query := `SELECT id, artist_id, title, audio_url, duration_seconds, 
+		play_count, fire_count, skip_count, fire_rate, is_active, uploaded_at 
+		FROM snippets WHERE artist_id = $1 ORDER BY uploaded_at DESC`
+
+	rows, err := r.db.QueryContext(ctx, query, artistID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var snippets []*Snippet
+	for rows.Next() {
+		s := &Snippet{}
+		err := rows.Scan(
+			&s.ID,
+			&s.ArtistID,
+			&s.Title,
+			&s.AudioURL,
+			&s.Duration,
+			&s.PlayCount,
+			&s.FireCount,
+			&s.SkipCount,
+			&s.FireRate,
+			&s.IsActive,
+			&s.UploadedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		snippets = append(snippets, s)
+	}
+
+	return snippets, nil
+}

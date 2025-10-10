@@ -49,6 +49,7 @@ type Repo interface {
 	UpdateSnippet(ctx context.Context, artistID int64, snippet *Snippet) (*Snippet, error)
 	DeleteSnippet(ctx context.Context, artistID int64) error
 	GetSnippetByID(ctx context.Context, snippetID int64) (*Snippet, error)
+	GetAllSnippetsByArtist(ctx context.Context, artistID int64) ([]*Snippet, error)
 }
 
 type Service interface {
@@ -57,4 +58,5 @@ type Service interface {
 	UpdateSnippet(c context.Context, artistID int64, req *UpdateReq, audioFile []byte, filename string) (*UpdateRes, error)
 	DeleteSnippet(c context.Context, artistID int64) error
 	GetSnippetByID(c context.Context, snippetID int64) (*Snippet, error)
+	GetAllSnippets(c context.Context, artistID int64) ([]*Snippet, error)
 }
