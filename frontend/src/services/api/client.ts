@@ -104,8 +104,8 @@ class ApiClient {
         return this.request<T>(endpoint, { method: 'PUT', body, requiresAuth });
     }
 
-    async delete<T>(endpoint: string, requiresAuth = true): Promise<T> {
-        return this.request<T>(endpoint, { method: 'DELETE', requiresAuth });
+    async delete<T>(endpoint: string, body?: any, requiresAuth = true): Promise<T> {
+        return this.request<T>(endpoint, { method: 'DELETE', body, requiresAuth });
     }
 }
 

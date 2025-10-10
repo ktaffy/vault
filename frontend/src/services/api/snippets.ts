@@ -61,8 +61,8 @@ export const snippetService = {
         return apiClient.put<{ message: string; snippet: Snippet }>('/snippet/update', data, true);
     },
 
-    delete: async (): Promise<{ message: string }> => {
-        return apiClient.delete<{ message: string }>('/snippet/delete', true);
+    delete: async (snippetId: number): Promise<{ message: string }> => {
+        return apiClient.delete<{ message: string }>('/snippet/delete', { snippet_id: snippetId }, true);
     },
 
     getArtistStats: async (): Promise<ArtistStats> => {

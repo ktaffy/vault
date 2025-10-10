@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator } from 'react-native';
+import React, { useEffect, useState, useRef } from 'react';
+import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Animated } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
+import { useToast } from '../../context/ToastContext';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { snippetService, Snippet } from '../../services/api/snippets';
 
@@ -10,15 +11,41 @@ export const StatsScreen = () => {
     const insets = useSafeAreaInsets();
     const { theme } = useTheme();
     const router = useRouter();
+    const { showToast } = useToast();
     const { id } = useLocalSearchParams();
     const snippetId = Number(id);
 
     const [snippet, setSnippet] = useState<Snippet | null>(null);
     const [loading, setLoading] = useState(true);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [deleting, setDeleting] = useState(false);
+    const scaleAnim = useRef(new Animated.Value(0)).current;
+    const fadeAnim = useRef(new Animated.Value(0)).current;
 
     useEffect(() => {
         fetchSnippet();
     }, [snippetId]);
+
+    useEffect(() => {
+        if (showDeleteConfirm) {
+            Animated.parallel([
+                Animated.spring(scaleAnim, {
+                    toValue: 1,
+                    tension: 50,
+                    friction: 7,
+                    useNativeDriver: true,
+                }),
+                Animated.timing(fadeAnim, {
+                    toValue: 1,
+                    duration: 200,
+                    useNativeDriver: true,
+                }),
+            ]).start();
+        } else {
+            scaleAnim.setValue(0);
+            fadeAnim.setValue(0);
+        }
+    }, [showDeleteConfirm]);
 
     const fetchSnippet = async () => {
         try {
@@ -28,6 +55,20 @@ export const StatsScreen = () => {
             console.error('Failed to fetch snippet:', error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleDelete = async () => {
+        setDeleting(true);
+        try {
+            await snippetService.delete(snippetId);
+            showToast('Snippet deleted successfully', 'success');
+            router.back();
+        } catch (error: any) {
+            console.error('Failed to delete snippet:', error);
+            showToast(error.message || 'Failed to delete snippet', 'error');
+            setDeleting(false);
+            setShowDeleteConfirm(false);
         }
     };
 
@@ -79,8 +120,58 @@ export const StatsScreen = () => {
                 <Text style={[styles.headerTitle, { color: theme.colors.text }]}>
                     Analytics
                 </Text>
-                <View style={styles.headerSpacer} />
+                <Pressable onPress={() => setShowDeleteConfirm(true)} style={styles.deleteButton}>
+                    <Ionicons name="trash-outline" size={22} color={theme.colors.error} />
+                </Pressable>
             </View>
+
+            {showDeleteConfirm && (
+                <View style={styles.confirmOverlay}>
+                    <Animated.View style={[styles.confirmBackdrop, { opacity: fadeAnim }]} />
+                    <Pressable
+                        style={StyleSheet.absoluteFill}
+                        onPress={() => !deleting && setShowDeleteConfirm(false)}
+                    />
+                    <Animated.View style={[styles.confirmModal, {
+                        backgroundColor: theme.colors.surface,
+                        transform: [{ scale: scaleAnim }],
+                        opacity: fadeAnim,
+                    }]}>
+                        <Text style={[styles.confirmTitle, { color: theme.colors.text }]}>
+                            Delete snippet?
+                        </Text>
+                        <Text style={[styles.confirmMessage, { color: theme.colors.textSecondary }]}>
+                            This can't be undone and it will be removed from your profile.
+                        </Text>
+
+                        <View style={styles.confirmButtons}>
+                            <Pressable
+                                onPress={handleDelete}
+                                disabled={deleting}
+                                style={[styles.confirmButton, styles.confirmButtonDestructive]}
+                            >
+                                {deleting ? (
+                                    <ActivityIndicator size="small" color="#ffffff" />
+                                ) : (
+                                    <Text style={styles.confirmButtonTextDestructive}>
+                                        Delete
+                                    </Text>
+                                )}
+                            </Pressable>
+                            <View style={[styles.confirmDivider, { backgroundColor: theme.colors.border }]} />
+                            <Pressable
+                                onPress={() => setShowDeleteConfirm(false)}
+                                disabled={deleting}
+                                style={styles.confirmButton}
+                            >
+                                <Text style={[styles.confirmButtonText, { color: theme.colors.text }]}>
+                                    Cancel
+                                </Text>
+                            </Pressable>
+                        </View>
+                    </Animated.View>
+                </View>
+            )}
 
             <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
                 {/* Snippet Info Card */}
@@ -516,5 +607,78 @@ const styles = StyleSheet.create({
     insightDescription: {
         fontSize: 14,
         lineHeight: 20,
+    },
+    deleteButton: {
+        width: 40,
+        height: 40,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: -8,
+    },
+    confirmOverlay: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 1000,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 32,
+        pointerEvents: 'box-none',
+    },
+    confirmBackdrop: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.75)',
+        pointerEvents: 'auto',
+    },
+    confirmModal: {
+        width: '100%',
+        maxWidth: 340,
+        borderRadius: 16,
+        overflow: 'hidden',
+    },
+    confirmTitle: {
+        fontSize: 18,
+        fontWeight: '600',
+        textAlign: 'center',
+        paddingTop: 24,
+        paddingHorizontal: 24,
+    },
+    confirmMessage: {
+        fontSize: 14,
+        textAlign: 'center',
+        lineHeight: 20,
+        paddingHorizontal: 24,
+        paddingTop: 8,
+        paddingBottom: 24,
+    },
+    confirmButtons: {
+        width: '100%',
+    },
+    confirmButton: {
+        paddingVertical: 16,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    confirmButtonDestructive: {
+        backgroundColor: 'transparent',
+    },
+    confirmButtonText: {
+        fontSize: 16,
+        fontWeight: '500',
+    },
+    confirmButtonTextDestructive: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#ff3b30',
+    },
+    confirmDivider: {
+        height: 0.5,
+        width: '100%',
     },
 });
