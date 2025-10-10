@@ -6,17 +6,18 @@ import (
 )
 
 type Snippet struct {
-	ID         int64     `json:"id" db:"id"`
-	ArtistID   int64     `json:"artist_id" db:"artist_id"`
-	Title      string    `json:"title" db:"title"`
-	AudioURL   string    `json:"audio_url" db:"audio_url"`
-	Duration   int       `json:"duration_seconds" db:"duration_seconds"`
-	PlayCount  int       `json:"play_count" db:"play_count"`
-	FireCount  int       `json:"fire_count" db:"fire_count"`
-	SkipCount  int       `json:"skip_count" db:"skip_count"`
-	FireRate   float64   `json:"fire_rate" db:"fire_rate"`
-	IsActive   bool      `json:"is_active" db:"is_active"`
-	UploadedAt time.Time `json:"uploaded_at" db:"uploaded_at"`
+	ID          int64     `json:"id" db:"id"`
+	ArtistID    int64     `json:"artist_id" db:"artist_id"`
+	Title       string    `json:"title" db:"title"`
+	AudioURL    string    `json:"audio_url" db:"audio_url"`
+	CoverArtURL *string   `json:"cover_art_url" db:"cover_art_url"`
+	Duration    int       `json:"duration_seconds" db:"duration_seconds"`
+	PlayCount   int       `json:"play_count" db:"play_count"`
+	FireCount   int       `json:"fire_count" db:"fire_count"`
+	SkipCount   int       `json:"skip_count" db:"skip_count"`
+	FireRate    float64   `json:"fire_rate" db:"fire_rate"`
+	IsActive    bool      `json:"is_active" db:"is_active"`
+	UploadedAt  time.Time `json:"uploaded_at" db:"uploaded_at"`
 }
 
 type UploadReq struct {
@@ -26,10 +27,11 @@ type UploadReq struct {
 }
 
 type UploadRes struct {
-	ID       int64  `json:"id"`
-	Title    string `json:"title"`
-	AudioURL string `json:"audio_url"`
-	Message  string `json:"message"`
+	ID          int64   `json:"id"`
+	Title       string  `json:"title"`
+	AudioURL    string  `json:"audio_url"`
+	CoverArtURL *string `json:"cover_art_url,omitempty"`
+	Message     string  `json:"message"`
 }
 
 type UpdateReq struct {
@@ -37,10 +39,11 @@ type UpdateReq struct {
 }
 
 type UpdateRes struct {
-	ID       int64  `json:"id"`
-	Title    string `json:"title"`
-	AudioURL string `json:"audio_url"`
-	Message  string `json:"message"`
+	ID          int64   `json:"id"`
+	Title       string  `json:"title"`
+	AudioURL    string  `json:"audio_url"`
+	CoverArtURL *string `json:"cover_art_url,omitempty"`
+	Message     string  `json:"message"`
 }
 
 type Repo interface {
@@ -54,9 +57,9 @@ type Repo interface {
 }
 
 type Service interface {
-	UploadSnippet(c context.Context, artistID int64, req *UploadReq, audioFile []byte, filename string) (*UploadRes, error)
+	UploadSnippet(c context.Context, artistID int64, req *UploadReq, audioFile []byte, audioFilename string, coverArtFile []byte, coverArtFilename string) (*UploadRes, error)
 	GetSnippet(c context.Context, artistID int64) (*Snippet, error)
-	UpdateSnippet(c context.Context, artistID int64, req *UpdateReq, audioFile []byte, filename string) (*UpdateRes, error)
+	UpdateSnippet(c context.Context, artistID int64, req *UpdateReq, audioFile []byte, audioFilename string, coverArtFile []byte, coverArtFilename string) (*UpdateRes, error)
 	DeleteSnippet(c context.Context, artistID int64, snippetID int64) error
 	GetSnippetByID(c context.Context, snippetID int64) (*Snippet, error)
 	GetAllSnippets(c context.Context, artistID int64) ([]*Snippet, error)

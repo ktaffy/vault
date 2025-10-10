@@ -104,13 +104,26 @@ func (h *Handler) UploadSnippet(c *gin.Context) {
 		return
 	}
 
+	var coverArtData []byte
+	var coverArtFilename string
+	coverArtFile, coverArtHeader, err := c.Request.FormFile("cover_art")
+	if err == nil {
+		defer coverArtFile.Close()
+		coverArtData, err = io.ReadAll(coverArtFile)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to read cover art file"})
+			return
+		}
+		coverArtFilename = coverArtHeader.Filename
+	}
+
 	req := &UploadReq{
 		Title:     title,
 		StartTime: startTime,
 		EndTime:   endTime,
 	}
 
-	resp, err := h.Service.UploadSnippet(c.Request.Context(), artistID.(int64), req, audioData, fileHeader.Filename)
+	resp, err := h.Service.UploadSnippet(c.Request.Context(), artistID.(int64), req, audioData, fileHeader.Filename, coverArtData, coverArtFilename)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -184,9 +197,22 @@ func (h *Handler) UpdateSnippet(c *gin.Context) {
 		return
 	}
 
+	var coverArtData []byte
+	var coverArtFilename string
+	coverArtFile, coverArtHeader, err := c.Request.FormFile("cover_art")
+	if err == nil {
+		defer coverArtFile.Close()
+		coverArtData, err = io.ReadAll(coverArtFile)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to read cover art file"})
+			return
+		}
+		coverArtFilename = coverArtHeader.Filename
+	}
+
 	req := &UpdateReq{Title: title}
 
-	resp, err := h.Service.UpdateSnippet(c.Request.Context(), artistID.(int64), req, audioData, fileHeader.Filename)
+	resp, err := h.Service.UpdateSnippet(c.Request.Context(), artistID.(int64), req, audioData, fileHeader.Filename, coverArtData, coverArtFilename)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
