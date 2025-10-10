@@ -1,0 +1,1 @@
+ALTER TABLE snippets ADD COLUMN cover_art_url VARCHAR(500) NULL;

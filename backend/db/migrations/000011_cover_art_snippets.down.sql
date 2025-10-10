@@ -1,0 +1,1 @@
+ALTER TABLE snippets DROP COLUMN cover_art_url;
