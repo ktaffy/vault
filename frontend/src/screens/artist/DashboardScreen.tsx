@@ -1,157 +1,209 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, Pressable, FlatList, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
 import { useRouter } from 'expo-router';
+import { snippetService, Snippet } from '../../services/api/snippets';
 
 export const DashboardScreen = () => {
     const insets = useSafeAreaInsets();
     const { theme } = useTheme();
     const router = useRouter();
+    const [snippets, setSnippets] = useState<Snippet[]>([]);
+    const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
-    const snippets: any[] = [];
+
+    const fetchSnippets = async () => {
+        try {
+            const response = await snippetService.getAllArtistSnippets();
+            setSnippets(response.snippets || []);
+        } catch (error) {
+            console.error('Failed to fetch snippets:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchSnippets();
+    }, []);
 
     const onRefresh = async () => {
         setRefreshing(true);
+        await fetchSnippets();
         setRefreshing(false);
     };
 
+    // Calculate totals from all snippets
+    const totalPlays = snippets.reduce((sum, s) => sum + s.play_count, 0);
+    const totalFires = snippets.reduce((sum, s) => sum + s.fire_count, 0);
+    const totalSkips = snippets.reduce((sum, s) => sum + s.skip_count, 0);
+    const overallFireRate = totalPlays > 0 ? ((totalFires / totalPlays) * 100).toFixed(0) : '0';
+
     return (
         <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+            {/* Fixed Header */}
             <View style={[styles.header, { paddingTop: insets.top + 20, backgroundColor: theme.colors.background }]}>
                 <Text style={[styles.headerTitle, { color: theme.colors.text }]}>Dashboard</Text>
             </View>
 
-            <ScrollView
-                style={styles.content}
-                showsVerticalScrollIndicator={false}
-                refreshControl={
-                    <RefreshControl
-                        refreshing={refreshing}
-                        onRefresh={onRefresh}
-                        tintColor={theme.colors.primary}
-                    />
-                }
-            >
-                <View style={styles.statsGrid}>
-                    <StatCard
-                        icon="play-circle"
-                        label="Total Plays"
-                        value="0"
-                        theme={theme}
-                    />
-                    <StatCard
-                        icon="flame"
-                        label="Total Fires"
-                        value="0"
-                        theme={theme}
-                    />
-                    <StatCard
-                        icon="people"
-                        label="Followers"
-                        value="0"
-                        theme={theme}
-                    />
-                    <StatCard
-                        icon="trending-up"
-                        label="Fire Rate"
-                        value="0%"
-                        theme={theme}
-                    />
+            {/* Fixed Stats Grid */}
+            <View style={styles.statsGrid}>
+                <StatCard
+                    icon="play-circle"
+                    label="Total Plays"
+                    value={totalPlays.toString()}
+                    theme={theme}
+                />
+                <StatCard
+                    icon="flame"
+                    label="Total Fires"
+                    value={totalFires.toString()}
+                    theme={theme}
+                />
+                <StatCard
+                    icon="close-circle"
+                    label="Total Skips"
+                    value={totalSkips.toString()}
+                    theme={theme}
+                />
+                <StatCard
+                    icon="trending-up"
+                    label="Fire Rate"
+                    value={`${overallFireRate}%`}
+                    theme={theme}
+                />
+            </View>
+
+            {/* Scrollable Snippets Section */}
+            <View style={styles.snippetsSection}>
+                <View style={styles.sectionHeader}>
+                    <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
+                        Your Snippets ({snippets.length})
+                    </Text>
+                    <Pressable onPress={() => router.push('/(tabs)/artist/upload')}>
+                        <Ionicons name="add-circle-outline" size={28} color={theme.colors.primary} />
+                    </Pressable>
                 </View>
 
-                <View style={styles.snippetsSection}>
-                    <View style={styles.sectionHeader}>
-                        <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Your Snippets</Text>
-                        <Pressable onPress={() => router.push('/(tabs)/artist/upload')}>
-                            <Ionicons name="add-circle-outline" size={28} color={theme.colors.primary} />
+                {loading ? (
+                    <View style={styles.loadingContainer}>
+                        <ActivityIndicator size="large" color={theme.colors.primary} />
+                    </View>
+                ) : snippets.length === 0 ? (
+                    <View style={[styles.emptyState, {
+                        backgroundColor: theme.isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
+                        borderColor: theme.colors.border
+                    }]}>
+                        <View style={[styles.emptyIconCircle, {
+                            backgroundColor: theme.isDark ? 'rgba(148,120,233,0.1)' : 'rgba(148,120,233,0.1)'
+                        }]}>
+                            <Ionicons name="musical-notes" size={40} color={theme.colors.primary} />
+                        </View>
+                        <Text style={[styles.emptyStateTitle, { color: theme.colors.text }]}>
+                            No snippets yet
+                        </Text>
+                        <Text style={[styles.emptyStateDescription, { color: theme.colors.textSecondary }]}>
+                            Upload your first snippet to start sharing your music
+                        </Text>
+                        <Pressable
+                            onPress={() => router.push('/(tabs)/artist/upload')}
+                            style={[styles.uploadButton, { backgroundColor: theme.colors.primary }]}
+                        >
+                            <Ionicons name="cloud-upload-outline" size={20} color="#ffffff" />
+                            <Text style={styles.uploadButtonText}>Upload Snippet</Text>
                         </Pressable>
                     </View>
-
-                    {snippets.length === 0 ? (
-                        <View style={[styles.emptyState, {
-                            backgroundColor: theme.isDark ? '#1a1a1a' : '#f7fafc',
-                            borderColor: theme.isDark ? '#2a2a2a' : '#e5e5e5',
-                        }]}>
-                            <View style={[styles.emptyIconCircle, { backgroundColor: theme.isDark ? '#2a2a2a' : '#ffffff' }]}>
-                                <Ionicons name="musical-notes" size={48} color={theme.colors.primary} />
-                            </View>
-                            <Text style={[styles.emptyStateTitle, { color: theme.colors.text }]}>
-                                No snippets yet
-                            </Text>
-                            <Text style={[styles.emptyStateSubtext, { color: theme.colors.textSecondary }]}>
-                                Upload your first 15-second snippet to start getting discovered
-                            </Text>
-                            <Pressable
-                                style={[styles.uploadButton, { backgroundColor: theme.colors.primary }]}
-                                onPress={() => router.push('/(tabs)/artist/upload')}
-                            >
-                                <Ionicons name="add" size={20} color="#FFFFFF" style={styles.uploadButtonIcon} />
-                                <Text style={styles.uploadButtonText}>Upload Snippet</Text>
-                            </Pressable>
-                        </View>
-                    ) : (
-                        <View style={styles.snippetsList}>
-                            {snippets.map((snippet, index) => (
-                                <SnippetCard key={index} snippet={snippet} theme={theme} router={router} />
-                            ))}
-                        </View>
-                    )}
-                </View>
-            </ScrollView>
+                ) : (
+                    <FlatList
+                        data={snippets}
+                        keyExtractor={(item) => item.id.toString()}
+                        renderItem={({ item }) => (
+                            <SnippetCard
+                                snippet={item}
+                                theme={theme}
+                                onPress={() => router.push(`/(tabs)/artist/stats/${item.id}`)}
+                            />
+                        )}
+                        contentContainerStyle={styles.snippetsList}
+                        showsVerticalScrollIndicator={false}
+                        onRefresh={onRefresh}
+                        refreshing={refreshing}
+                    />
+                )}
+            </View>
         </View>
     );
 };
 
-const StatCard = ({ icon, label, value, theme }: any) => (
-    <View style={[styles.statCard, {
-        backgroundColor: theme.isDark ? '#1a1a1a' : '#ffffff',
-        borderColor: theme.isDark ? '#2a2a2a' : '#e5e5e5',
-    }]}>
+const StatCard: React.FC<{ icon: any; label: string; value: string; theme: any }> = ({
+    icon,
+    label,
+    value,
+    theme,
+}) => (
+    <View style={[styles.statCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
         <Ionicons name={icon} size={20} color={theme.colors.primary} />
         <Text style={[styles.statValue, { color: theme.colors.text }]}>{value}</Text>
         <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>{label}</Text>
     </View>
 );
 
-const SnippetCard = ({ snippet, theme, router }: any) => (
+const SnippetCard: React.FC<{ snippet: Snippet; theme: any; onPress: () => void }> = ({
+    snippet,
+    theme,
+    onPress,
+}) => (
     <Pressable
-        style={[styles.snippetCard, {
-            backgroundColor: theme.isDark ? '#1a1a1a' : '#ffffff',
-            borderColor: theme.isDark ? '#2a2a2a' : '#e5e5e5',
-        }]}
-        onPress={() => router.push(`/(tabs)/artist/stats/${snippet.id}`)}
+        onPress={onPress}
+        style={[styles.snippetCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}
     >
-        <View style={styles.snippetInfo}>
-            <View style={[styles.waveformPlaceholder, { backgroundColor: theme.colors.primary + '20' }]}>
-                <Ionicons name="bar-chart" size={20} color={theme.colors.primary} />
-            </View>
-            <View style={styles.snippetDetails}>
+        <View style={styles.snippetHeader}>
+            <View style={styles.snippetInfo}>
                 <Text style={[styles.snippetTitle, { color: theme.colors.text }]} numberOfLines={1}>
                     {snippet.title}
                 </Text>
                 <Text style={[styles.snippetDate, { color: theme.colors.textSecondary }]}>
-                    {snippet.date}
+                    {new Date(snippet.uploaded_at).toLocaleDateString()}
                 </Text>
             </View>
+            <Ionicons name="chevron-forward" size={20} color={theme.colors.textSecondary} />
         </View>
+
         <View style={styles.snippetStats}>
             <View style={styles.snippetStat}>
-                <Ionicons name="play-circle" size={16} color={theme.colors.textSecondary} />
+                <Ionicons name="play-circle-outline" size={16} color={theme.colors.textSecondary} />
                 <Text style={[styles.snippetStatText, { color: theme.colors.textSecondary }]}>
-                    {snippet.plays}
+                    {snippet.play_count}
                 </Text>
             </View>
             <View style={styles.snippetStat}>
-                <Ionicons name="flame" size={16} color={theme.colors.textSecondary} />
+                <Ionicons name="flame-outline" size={16} color={theme.colors.primary} />
                 <Text style={[styles.snippetStatText, { color: theme.colors.textSecondary }]}>
-                    {snippet.fires}
+                    {snippet.fire_count}
                 </Text>
             </View>
-            <Text style={[styles.snippetFireRate, { color: theme.colors.primary }]}>
-                {snippet.fireRate}%
-            </Text>
+            <View style={styles.snippetStat}>
+                <Ionicons name="close-circle-outline" size={16} color={theme.colors.textSecondary} />
+                <Text style={[styles.snippetStatText, { color: theme.colors.textSecondary }]}>
+                    {snippet.skip_count}
+                </Text>
+            </View>
+            <View style={[styles.fireRateBadge, {
+                backgroundColor: snippet.fire_rate > 0.5 ? 'rgba(148,120,233,0.15)' : 'rgba(150,150,150,0.1)'
+            }]}>
+                <Ionicons
+                    name="flame"
+                    size={14}
+                    color={snippet.fire_rate > 0.5 ? theme.colors.primary : theme.colors.textSecondary}
+                />
+                <Text style={[styles.fireRateText, {
+                    color: snippet.fire_rate > 0.5 ? theme.colors.primary : theme.colors.textSecondary
+                }]}>
+                    {(snippet.fire_rate * 100).toFixed(0)}%
+                </Text>
+            </View>
         </View>
     </Pressable>
 );
@@ -169,36 +221,33 @@ const styles = StyleSheet.create({
         fontWeight: '700',
         letterSpacing: -0.5,
     },
-    content: {
-        flex: 1,
-    },
     statsGrid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
         paddingHorizontal: 16,
-        gap: 12,
-        marginBottom: 24,
+        gap: 10,
+        marginBottom: 16,
     },
     statCard: {
         width: '48%',
-        padding: 20,
-        borderRadius: 16,
+        padding: 14,
+        borderRadius: 14,
         alignItems: 'flex-start',
-        gap: 8,
+        gap: 6,
         borderWidth: 1,
     },
     statValue: {
-        fontSize: 28,
+        fontSize: 24,
         fontWeight: '700',
-        marginTop: 4,
+        marginTop: 2,
     },
     statLabel: {
-        fontSize: 13,
+        fontSize: 12,
         fontWeight: '500',
     },
     snippetsSection: {
+        flex: 1,
         paddingHorizontal: 24,
-        paddingBottom: 40,
     },
     sectionHeader: {
         flexDirection: 'row',
@@ -209,6 +258,10 @@ const styles = StyleSheet.create({
     sectionTitle: {
         fontSize: 20,
         fontWeight: '600',
+    },
+    loadingContainer: {
+        padding: 40,
+        alignItems: 'center',
     },
     emptyState: {
         padding: 48,
@@ -229,31 +282,28 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         marginBottom: 8,
     },
-    emptyStateSubtext: {
-        fontSize: 15,
+    emptyStateDescription: {
+        fontSize: 14,
         textAlign: 'center',
-        marginBottom: 28,
-        lineHeight: 22,
-        maxWidth: 280,
+        marginBottom: 24,
+        paddingHorizontal: 20,
     },
     uploadButton: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: 28,
-        paddingVertical: 14,
-        borderRadius: 12,
         gap: 8,
-    },
-    uploadButtonIcon: {
-        marginRight: -4,
+        paddingHorizontal: 24,
+        paddingVertical: 12,
+        borderRadius: 12,
     },
     uploadButtonText: {
-        color: '#FFFFFF',
+        color: '#ffffff',
         fontSize: 16,
         fontWeight: '600',
     },
     snippetsList: {
         gap: 12,
+        paddingBottom: 20,
     },
     snippetCard: {
         padding: 16,
@@ -261,29 +311,21 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         gap: 12,
     },
-    snippetInfo: {
+    snippetHeader: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 12,
+        justifyContent: 'space-between',
     },
-    waveformPlaceholder: {
-        width: 48,
-        height: 48,
-        borderRadius: 12,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    snippetDetails: {
+    snippetInfo: {
         flex: 1,
+        gap: 4,
     },
     snippetTitle: {
         fontSize: 16,
         fontWeight: '600',
-        marginBottom: 4,
     },
     snippetDate: {
-        fontSize: 13,
-        fontWeight: '500',
+        fontSize: 12,
     },
     snippetStats: {
         flexDirection: 'row',
@@ -297,11 +339,19 @@ const styles = StyleSheet.create({
     },
     snippetStatText: {
         fontSize: 14,
-        fontWeight: '600',
+        fontWeight: '500',
     },
-    snippetFireRate: {
-        fontSize: 14,
-        fontWeight: '600',
+    fireRateBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 8,
         marginLeft: 'auto',
+    },
+    fireRateText: {
+        fontSize: 13,
+        fontWeight: '600',
     },
 });

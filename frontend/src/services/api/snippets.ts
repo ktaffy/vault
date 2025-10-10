@@ -53,6 +53,10 @@ export const snippetService = {
         return apiClient.get<Snippet>('/snippet/artist', true);
     },
 
+    getAllArtistSnippets: async(): Promise<{ snippets: Snippet[] }> => {
+        return apiClient.get<{ snippets: Snippet[] }>('/snippets/artist', true);
+    },
+
     update: async (data: UpdateSnippetRequest): Promise<{ message: string; snippet: Snippet }> => {
         return apiClient.put<{ message: string; snippet: Snippet }>('/snippet/update', data, true);
     },
