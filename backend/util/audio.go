@@ -145,7 +145,7 @@ func getContentType(filename string) string {
 	case ".wav":
 		return "audio/wav"
 	case ".m4a":
-		return "audio/mp4"
+		return "audio/m4a"
 	default:
 		return "application/octet-stream"
 	}
@@ -169,7 +169,7 @@ func ValidateAudioFile(audioData []byte, filename string) error {
 	}
 
 	ext := strings.ToLower(filepath.Ext(filename))
-	if ext != ".mp3" && ext != ".wav" && ext != ".m4a" {
+	if ext != ".mp3" && ext != ".wav" {
 		return fmt.Errorf("unsupported audio format: %s", ext)
 	}
 

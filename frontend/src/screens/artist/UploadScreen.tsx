@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Pressable, ActivityIndicator, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ActivityIndicator, ScrollView, Image } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
 import { useRouter } from 'expo-router';
 import { Input } from '../../components/common';
 import * as DocumentPicker from 'expo-document-picker';
+import * as ImagePicker from 'expo-image-picker';
 import { useAudioPlayer, useAudioPlayerStatus, setAudioModeAsync } from 'expo-audio';
 import Slider from '@react-native-community/slider';
 import { snippetService } from '../../services/api/snippets';
@@ -21,6 +22,7 @@ export const UploadScreen = () => {
 
     const [title, setTitle] = useState('');
     const [audioFile, setAudioFile] = useState<any>(null);
+    const [coverArtFile, setCoverArtFile] = useState<any>(null);
     const [audioDuration, setAudioDuration] = useState(0);
     const [startTime, setStartTime] = useState(0);
     const [endTime, setEndTime] = useState(15);
@@ -82,6 +84,12 @@ export const UploadScreen = () => {
 
             const file = result.assets[0];
 
+            const fileName = file.name.toLowerCase();
+            if (!fileName.endsWith('.mp3') && !fileName.endsWith('.wav')) {
+                showToast('Only MP3 and WAV files are supported', 'error');
+                return;
+            }
+
             if (!file.size) {
                 showToast('Could not determine file size', 'error');
                 return;
@@ -97,6 +105,33 @@ export const UploadScreen = () => {
             setAudioFile(file);
         } catch (error) {
             showToast('Failed to load audio file', 'error');
+        }
+    };
+
+    const pickCoverArt = async () => {
+        try {
+            const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+            if (permissionResult.granted === false) {
+                showToast('Permission to access gallery is required', 'error');
+                return;
+            }
+
+            const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: 'images',
+                allowsEditing: true,
+                aspect: [1, 1],
+                quality: 0.8,
+            });
+
+            if (result.canceled) {
+                return;
+            }
+
+            const image = result.assets[0];
+            setCoverArtFile(image);
+        } catch (error) {
+            showToast('Failed to load cover art', 'error');
         }
     };
 
@@ -173,6 +208,14 @@ export const UploadScreen = () => {
                 name: audioFile.name,
             } as any);
 
+            if (coverArtFile) {
+                formData.append('cover_art', {
+                    uri: coverArtFile.uri,
+                    type: coverArtFile.mimeType || 'image/jpeg',
+                    name: coverArtFile.fileName || 'cover.jpg',
+                } as any);
+            }
+
             const response = await snippetService.upload(formData);
 
             showToast('Snippet uploaded successfully!', 'success');
@@ -242,9 +285,48 @@ export const UploadScreen = () => {
                                         Choose Audio File
                                     </Text>
                                     <Text style={[styles.fileEmptySubtext, { color: theme.colors.textSecondary }]}>
-                                        MP3, WAV, M4A (Max 50MB, Min 15s)
+                                        MP3, WAV, (Max 50MB, Min 15s)
                                     </Text>
                                 </View>
+                            )}
+                        </Pressable>
+                    </View>
+
+                    <View style={styles.inputGroup}>
+                        <Text style={[styles.label, { color: theme.colors.text }]}>
+                            Cover Art <Text style={[styles.optionalLabel, { color: theme.colors.textSecondary }]}>(Optional)</Text>
+                        </Text>
+                        <Pressable
+                            style={[styles.coverArtPicker, {
+                                backgroundColor: coverArtFile ? (theme.isDark ? '#1a1a1a' : '#f7fafc') : 'transparent',
+                                borderColor: coverArtFile ? theme.colors.primary : 'transparent',
+                            }]}
+                            onPress={pickCoverArt}
+                        >
+                            {coverArtFile ? (
+                                <View style={styles.coverArtPreview}>
+                                    <Image
+                                        source={{ uri: coverArtFile.uri }}
+                                        style={styles.coverArtImage}
+                                    />
+                                    <Pressable
+                                        onPress={() => setCoverArtFile(null)}
+                                        style={styles.removeButton}
+                                        hitSlop={10}
+                                    >
+                                        <Ionicons name="close" size={24} color="rgba(150, 150, 150, 0.8)" />
+                                    </Pressable>
+                                </View>
+                            ) : (
+                                    <View style={[styles.coverArtEmpty, { opacity: 0.6 }]}>
+                                        <Ionicons name="image-outline" size={32} color={theme.colors.textSecondary} />
+                                        <Text style={[styles.coverArtEmptyText, { color: theme.colors.text }]}>
+                                            Choose Cover Art
+                                        </Text>
+                                        <Text style={[styles.coverArtEmptySubtext, { color: theme.colors.textSecondary }]}>
+                                            Square image recommended
+                                        </Text>
+                                    </View>
                             )}
                         </Pressable>
                     </View>
@@ -517,5 +599,51 @@ const styles = StyleSheet.create({
         color: '#FFFFFF',
         fontSize: 16,
         fontWeight: '600',
+    },
+    optionalLabel: {
+        fontSize: 13,
+        fontWeight: '500',
+    },
+    coverArtPicker: {
+        borderRadius: 16,
+        borderWidth: 2,
+        overflow: 'hidden',
+        aspectRatio: 1,
+        maxHeight: 200,
+        alignSelf: 'center',
+        width: '100%',
+        maxWidth: 200,
+    },
+    coverArtPreview: {
+        flex: 1,
+        position: 'relative',
+    },
+    coverArtImage: {
+        width: '100%',
+        height: '100%',
+        borderRadius: 14,
+    },
+    removeButton: {
+        position: 'absolute',
+        top: 8,
+        right: 8,
+    },
+    coverArtEmpty: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        gap: 6,
+        padding: 32,
+        backgroundColor: 'transparent',
+    },
+    coverArtEmptyText: {
+        fontSize: 15,
+        fontWeight: '600',
+        marginTop: 6,
+    },
+    coverArtEmptySubtext: {
+        fontSize: 12,
+        fontWeight: '500',
+        textAlign: 'center'
     },
 });

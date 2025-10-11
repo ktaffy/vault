@@ -4,6 +4,7 @@ export interface UploadSnippetResponse {
     id: number;
     title: string;
     audio_url: string;
+    cover_art_url?: string | null;
     message: string;
 }
 
@@ -12,6 +13,7 @@ export interface Snippet {
     title: string;
     artist_id: number;
     audio_url: string;
+    cover_art_url?: string | null;
     duration_seconds: number;
     play_count: number;
     fire_count: number;

@@ -1,11 +1,27 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Animated } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Animated, Image } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
 import { useToast } from '../../context/ToastContext';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { snippetService, Snippet } from '../../services/api/snippets';
+import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
+
+const audioCache = new Map<string, any>();
+
+const PreloadAudio: React.FC<{ audioUrl: string }> = ({ audioUrl }) => {
+    const player = useAudioPlayer(audioUrl);
+    const status = useAudioPlayerStatus(player);
+
+    useEffect(() => {
+        if (status.isLoaded && !audioCache.has(audioUrl)) {
+            audioCache.set(audioUrl, player);
+        }
+    }, [status.isLoaded, audioUrl]);
+
+    return null;
+};
 
 export const StatsScreen = () => {
     const insets = useSafeAreaInsets();
@@ -19,6 +35,8 @@ export const StatsScreen = () => {
     const [loading, setLoading] = useState(true);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [deleting, setDeleting] = useState(false);
+    const [isPlaying, setIsPlaying] = useState(false);
+    const [audioProgress, setAudioProgress] = useState(0);
     const scaleAnim = useRef(new Animated.Value(0)).current;
     const fadeAnim = useRef(new Animated.Value(0)).current;
 
@@ -55,6 +73,13 @@ export const StatsScreen = () => {
             console.error('Failed to fetch snippet:', error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handlePlayPause = () => {
+        setIsPlaying(!isPlaying);
+        if (isPlaying) {
+            setAudioProgress(0);
         }
     };
 
@@ -125,6 +150,19 @@ export const StatsScreen = () => {
                 </Pressable>
             </View>
 
+            {snippet && isPlaying && (
+                <AudioPlayerComponent
+                    snippet={snippet}
+                    onEnd={() => {
+                        setIsPlaying(false);
+                        setAudioProgress(0);
+                    }}
+                    onProgress={setAudioProgress}
+                />
+            )}
+
+            {snippet && <PreloadAudio audioUrl={snippet.audio_url} />}
+
             {showDeleteConfirm && (
                 <View style={styles.confirmOverlay}>
                     <Animated.View style={[styles.confirmBackdrop, { opacity: fadeAnim }]} />
@@ -180,11 +218,18 @@ export const StatsScreen = () => {
                     borderColor: theme.colors.border
                 }]}>
                     <View style={styles.infoHeader}>
-                        <View style={[styles.iconCircle, {
-                            backgroundColor: theme.isDark ? 'rgba(148,120,233,0.15)' : 'rgba(148,120,233,0.1)'
-                        }]}>
-                            <Ionicons name="musical-note" size={24} color={theme.colors.primary} />
-                        </View>
+                        {snippet.cover_art_url ? (
+                            <Image
+                                source={{ uri: snippet.cover_art_url }}
+                                style={styles.coverArtImage}
+                            />
+                        ) : (
+                            <View style={[styles.iconCircle, {
+                                backgroundColor: theme.isDark ? 'rgba(148,120,233,0.15)' : 'rgba(148,120,233,0.1)'
+                            }]}>
+                                <Ionicons name="musical-note" size={24} color={theme.colors.primary} />
+                            </View>
+                        )}
                         <View style={styles.infoDetails}>
                             <Text style={[styles.snippetTitle, { color: theme.colors.text }]} numberOfLines={2}>
                                 {snippet.title}
@@ -209,6 +254,29 @@ export const StatsScreen = () => {
                                 color: snippet.is_active ? '#4CAF50' : '#F44336'
                             }]}>
                                 {snippet.is_active ? 'Active' : 'Inactive'}
+                            </Text>
+                        </View>
+                    </View>
+                    {/* Audio Player Bar */}
+                    <View style={[styles.audioPlayerBar, { borderTopColor: theme.colors.border }]}>
+                        <Pressable onPress={handlePlayPause} hitSlop={10}>
+                            <Ionicons
+                                name={isPlaying ? "pause-circle" : "play-circle"}
+                                size={32}
+                                color={theme.colors.primary}
+                            />
+                        </Pressable>
+                        <View style={styles.progressContainer}>
+                            <View style={[styles.progressTrack, { backgroundColor: theme.colors.border }]}>
+                                <View
+                                    style={[styles.progressFill, {
+                                        width: `${audioProgress * 100}%`,
+                                        backgroundColor: theme.colors.primary
+                                    }]}
+                                />
+                            </View>
+                            <Text style={[styles.progressTime, { color: theme.colors.textSecondary }]}>
+                                {formatTime(audioProgress * 15)} / 0:15
                             </Text>
                         </View>
                     </View>
@@ -417,6 +485,59 @@ const InsightCard: React.FC<{
         </Text>
     </View>
 );
+
+const AudioPlayerComponent: React.FC<{
+    snippet: { audio_url: string };
+    onEnd: () => void;
+    onProgress: (progress: number) => void;
+}> = ({ snippet, onEnd, onProgress }) => {
+    const cachedPlayer = audioCache.get(snippet.audio_url);
+    const newPlayer = useAudioPlayer(snippet.audio_url);
+    const player = cachedPlayer || newPlayer;
+    const status = useAudioPlayerStatus(player);
+    const [hasStarted, setHasStarted] = useState(false);
+
+    useEffect(() => {
+        if (cachedPlayer) {
+            cachedPlayer.seekTo(0);
+            cachedPlayer.play();
+            setHasStarted(true);
+        } else if (status.isLoaded) {
+            player.play();
+            setHasStarted(true);
+        }
+
+        return () => {
+            try {
+                if (player && status.isLoaded) {
+                    player.pause();
+                }
+            } catch (error) {
+                // Ignore cleanup errors
+            }
+        };
+    }, [snippet.audio_url]);
+
+    useEffect(() => {
+        if (status.isLoaded && status.duration > 0) {
+            const progress = status.currentTime / status.duration;
+            onProgress(progress);
+        }
+    }, [status.currentTime, status.duration]);
+
+    useEffect(() => {
+        if (hasStarted && status.isLoaded && !status.playing && status.currentTime > 0) {
+            onEnd();
+        }
+    }, [status.playing, status.isLoaded, hasStarted]);
+
+    return null;
+};
+
+const formatTime = (seconds: number) => {
+    const secs = Math.floor(seconds);
+    return `0:${secs.toString().padStart(2, '0')}`;
+};
 
 const styles = StyleSheet.create({
     container: {
@@ -680,5 +801,31 @@ const styles = StyleSheet.create({
     confirmDivider: {
         height: 0.5,
         width: '100%',
+    },
+    coverArtImage: {
+        width: 48,
+        height: 48,
+        borderRadius: 12,
+    },
+    audioPlayerBar: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        paddingTop: 16,
+        marginTop: 12,
+        borderTopWidth: 1,
+    },
+    progressContainer: {
+        flex: 1,
+        gap: 6,
+    },
+    progressTrack: {
+        height: 4,
+        borderRadius: 2,
+        overflow: 'hidden',
+    },
+    progressTime: {
+        fontSize: 11,
+        fontWeight: '500',
     },
 });
