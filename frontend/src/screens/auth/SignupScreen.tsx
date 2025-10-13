@@ -1,4 +1,3 @@
-// frontend/src/screens/auth/SignupScreen.tsx (WITH VALIDATORS)
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { useTheme } from '../../hooks/useTheme';

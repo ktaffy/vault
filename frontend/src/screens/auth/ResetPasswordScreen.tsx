@@ -1,4 +1,3 @@
-// frontend/src/screens/auth/ResetPasswordScreen.tsx (WITH VALIDATORS)
 import React, { useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useTheme } from '../../hooks/useTheme';
@@ -23,14 +22,12 @@ export const ResetPasswordScreen = () => {
     const handleSubmit = async () => {
         setError('');
 
-        // Validate using utility functions
         const validation = validateFields({
             password: validatePassword(password),
             confirmPassword: validatePasswordMatch(password, confirmPassword),
         });
 
         if (!validation.valid) {
-            // Show first error
             const firstError = Object.values(validation.errors)[0];
             setError(firstError);
             return;
