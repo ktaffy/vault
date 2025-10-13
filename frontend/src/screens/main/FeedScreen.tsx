@@ -1,14 +1,12 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useTheme } from '../../hooks/useTheme';
 import { useAuth } from '../../hooks/useAuth';
+import { useScreenSetup } from '../../hooks/useScreenSetup';
 import { Button } from '../../components/common';
 
 export const FeedScreen = () => {
-    const insets = useSafeAreaInsets();
-    const { theme } = useTheme();
     const { user, logout } = useAuth();
+    const { theme, insets } = useScreenSetup();
 
     return (
         <View style={[styles.container, { backgroundColor: theme.colors.background, paddingTop: insets.top }]}>

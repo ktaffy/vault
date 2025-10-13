@@ -12,10 +12,9 @@ import {
     Modal, TextInput, KeyboardAvoidingView, Platform,
     RefreshControl
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '../../hooks/useTheme';
+import { useScreenSetup } from '../../hooks/useScreenSetup';
 import { useAuth } from '../../hooks/useAuth';
 import { useDispatch } from 'react-redux';
 import { updateUserProfile } from '../../store/slices/authSlice';
@@ -25,8 +24,7 @@ import { swipeService } from '../../services/api/swipes';
 import type { Snippet } from '../../services/api/snippets';
 
 export const ProfileScreen = () => {
-    const insets = useSafeAreaInsets();
-    const { theme, toggleTheme } = useTheme();
+    const { insets, theme, toggleTheme, showToast } = useScreenSetup();
     const { user, isAuthenticated, logout } = useAuth();
     const [likedSnippets, setLikedSnippets] = useState<Snippet[]>([]);
     const [loadingSnippets, setLoadingSnippets] = useState(false);

@@ -1,17 +1,14 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { useTheme } from '../../hooks/useTheme';
 import { Button, Input } from '../../components/common';
 import { authService } from '../../services/api/auth';
-import { useRouter, useLocalSearchParams } from 'expo-router';
-import { useToast } from '../../context/ToastContext';
+import { useLocalSearchParams } from 'expo-router';
 import { AuthScreenLayout } from '../../components/AuthScreenLayout';
+import { useScreenSetup } from '../../hooks/useScreenSetup';
 import { validatePassword, validatePasswordMatch, validateFields } from '../../utils/validation';
 
 export const ResetPasswordScreen = () => {
-    const router = useRouter();
-    const { showToast } = useToast();
-    const { theme } = useTheme();
+    const { theme, router, showToast } = useScreenSetup();
     const { token } = useLocalSearchParams<{ token: string }>();
 
     const [password, setPassword] = useState('');

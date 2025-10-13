@@ -1,24 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Pressable, ActivityIndicator, ScrollView, Image } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '../../hooks/useTheme';
-import { useRouter } from 'expo-router';
+import { useScreenSetup } from '../../hooks/useScreenSetup';
 import { Input } from '../../components/common';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import { useAudioPlayer, useAudioPlayerStatus, setAudioModeAsync } from 'expo-audio';
 import Slider from '@react-native-community/slider';
 import { snippetService } from '../../services/api/snippets';
-import { useToast } from '../../context/ToastContext';
 
 const MAX_DURATION = 15;
 
-export const UploadScreen = () => {
-    const insets = useSafeAreaInsets();
-    const { theme } = useTheme();
-    const router = useRouter();
-    const { showToast } = useToast();
+export const UploadScreen = () => {;
+    const { insets, theme, router, showToast } = useScreenSetup();
 
     const [title, setTitle] = useState('');
     const [audioFile, setAudioFile] = useState<any>(null);

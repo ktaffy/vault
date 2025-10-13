@@ -1,24 +1,18 @@
-// frontend/src/screens/auth/ForgotPasswordScreen.tsx (WITH VALIDATORS)
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
-import { useTheme } from '../../hooks/useTheme';
 import { Button, Input } from '../../components/common';
 import { authService } from '../../services/api/auth';
-import { useRouter } from 'expo-router';
-import { useToast } from '../../context/ToastContext';
 import { AuthScreenLayout } from '../../components/AuthScreenLayout';
 import { validateEmail } from '../../utils/validation';
+import { useScreenSetup } from '../../hooks/useScreenSetup';
 
 export const ForgotPasswordScreen = () => {
-    const router = useRouter();
-    const { showToast } = useToast();
-    const { theme } = useTheme();
+    const { theme, router, showToast } = useScreenSetup();
 
     const [email, setEmail] = useState('');
     const [loading, setLoading] = useState(false);
 
     const handleSubmit = async () => {
-        // Validate email using utility
         const emailValidation = validateEmail(email);
 
         if (!emailValidation.valid) {

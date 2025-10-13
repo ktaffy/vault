@@ -1,15 +1,11 @@
 import React from 'react';
 import { View, Text, StyleSheet, Image } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '../../hooks/useTheme';
 import { Button } from '../../components/common';
-import { useRouter } from 'expo-router';
+import { useScreenSetup } from '../../hooks/useScreenSetup';
 
 export const EmailVerificationScreen = () => {
-    const router = useRouter();
-    const insets = useSafeAreaInsets();
-    const { theme } = useTheme();
+    const { theme, router, insets} = useScreenSetup();
 
     return (
         <View style={[styles.container, { backgroundColor: theme.colors.background }]}>

@@ -1,17 +1,13 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
-import { useTheme } from '../../hooks/useTheme';
 import { useAuth } from '../../hooks/useAuth';
 import { Button, Input } from '../../components/common';
-import { useRouter } from 'expo-router';
-import { useToast } from '../../context/ToastContext';
 import { AuthScreenLayout } from '../../components/AuthScreenLayout';
+import { useScreenSetup } from '../../hooks/useScreenSetup';
 import { validateEmail, validatePassword, validateUsername, validateFields } from '../../utils/validation';
 
 export const SignupScreen = () => {
-    const router = useRouter();
-    const { showToast } = useToast();
-    const { theme } = useTheme();
+    const { theme, router, showToast } = useScreenSetup();
     const { signup, loading } = useAuth();
 
     const [username, setUsername] = useState('');

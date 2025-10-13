@@ -1,9 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, Pressable, FlatList, ActivityIndicator, Image } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '../../hooks/useTheme';
-import { useRouter } from 'expo-router';
+import { useScreenSetup } from '../../hooks/useScreenSetup';
 import { snippetService, Snippet } from '../../services/api/snippets';
 import { useAudioPlayer, useAudioPlayerStatus, setAudioModeAsync } from 'expo-audio';
 import { useFocusEffect } from '@react-navigation/native';
@@ -28,9 +26,7 @@ const PreloadAudio: React.FC<{ audioUrl: string }> = ({ audioUrl }) => {
 };
 
 export const DashboardScreen = () => {
-    const insets = useSafeAreaInsets();
-    const { theme } = useTheme();
-    const router = useRouter();
+    const { insets, theme, router } = useScreenSetup();
     const [snippets, setSnippets] = useState<Snippet[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);

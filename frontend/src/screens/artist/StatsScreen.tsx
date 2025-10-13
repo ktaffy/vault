@@ -1,10 +1,8 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Animated, Image } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '../../hooks/useTheme';
-import { useToast } from '../../context/ToastContext';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useScreenSetup } from '../../hooks/useScreenSetup';
+import { useLocalSearchParams } from 'expo-router';
 import { snippetService, Snippet } from '../../services/api/snippets';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 
@@ -24,10 +22,7 @@ const PreloadAudio: React.FC<{ audioUrl: string }> = ({ audioUrl }) => {
 };
 
 export const StatsScreen = () => {
-    const insets = useSafeAreaInsets();
-    const { theme } = useTheme();
-    const router = useRouter();
-    const { showToast } = useToast();
+    const { insets, theme, router, showToast } = useScreenSetup();
     const { id } = useLocalSearchParams();
     const snippetId = Number(id);
 
