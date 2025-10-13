@@ -1,17 +1,17 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Pressable, ActivityIndicator, ScrollView, Image } from 'react-native';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { View, Text, StyleSheet, Pressable, ActivityIndicator, ScrollView, Image, PanResponder } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useScreenSetup } from '../../hooks/useScreenSetup';
 import { Input } from '../../components/common';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
-import { useAudioPlayer, useAudioPlayerStatus, setAudioModeAsync } from 'expo-audio';
-import Slider from '@react-native-community/slider';
 import { snippetService } from '../../services/api/snippets';
+import { useAudioPlayback } from '../../hooks/useAudioPlayback';
+import { formatTime } from '../../utils/audioHelpers';
 
 const MAX_DURATION = 15;
 
-export const UploadScreen = () => {;
+export const UploadScreen = () => {
     const { insets, theme, router, showToast } = useScreenSetup();
 
     const [title, setTitle] = useState('');
@@ -21,29 +21,87 @@ export const UploadScreen = () => {;
     const [startTime, setStartTime] = useState(0);
     const [endTime, setEndTime] = useState(15);
     const [uploading, setUploading] = useState(false);
-    const [isPlaying, setIsPlaying] = useState(false);
+    const waveformWidth = useRef(0);
+    const [isDragging, setIsDragging] = useState(false);
 
-    const player = useAudioPlayer(audioFile?.uri || '');
-    const status = useAudioPlayerStatus(player);
-    const previewTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    // REPLACED: All the manual audio player setup, useEffects, and cleanup
+    // WITH: One clean hook call
+    const {
+        isPlaying,
+        duration,
+        play,
+        pause,
+    } = useAudioPlayback(audioFile?.uri || '', {
+        autoPlay: false,
+        startTime,
+        endTime,
+    });
 
+    // Pan responder for the entire waveform - drag anywhere to position the 15s window
+    const waveformPanResponder = useMemo(() =>
+        PanResponder.create({
+            onStartShouldSetPanResponder: () => true,
+            onMoveShouldSetPanResponder: () => true,
+            onPanResponderGrant: (evt) => {
+                setIsDragging(true); // Disable scroll
+                if (isPlaying) pause();
+
+                // Calculate position from touch
+                const touchX = evt.nativeEvent.locationX;
+                if (waveformWidth.current === 0 || audioDuration === 0) return;
+
+                // Calculate the center time of the 15s window based on touch
+                const touchPercent = touchX / waveformWidth.current;
+                const touchTime = touchPercent * audioDuration;
+
+                // Center the 15s window on the touch point
+                let newStartTime = touchTime - (MAX_DURATION / 2);
+
+                // Adjust if it goes out of bounds
+                if (newStartTime < 0) {
+                    newStartTime = 0;
+                } else if (newStartTime + MAX_DURATION > audioDuration) {
+                    newStartTime = audioDuration - MAX_DURATION;
+                }
+
+                setStartTime(newStartTime);
+                setEndTime(newStartTime + MAX_DURATION);
+            },
+            onPanResponderMove: (evt) => {
+                if (waveformWidth.current === 0 || audioDuration === 0) return;
+
+                // Calculate new position based on current touch location
+                const touchX = evt.nativeEvent.locationX;
+                const touchPercent = touchX / waveformWidth.current;
+                const touchTime = touchPercent * audioDuration;
+
+                // Center the 15s window on the current touch point
+                let newStartTime = touchTime - (MAX_DURATION / 2);
+
+                // Adjust if it goes out of bounds
+                if (newStartTime < 0) {
+                    newStartTime = 0;
+                } else if (newStartTime + MAX_DURATION > audioDuration) {
+                    newStartTime = audioDuration - MAX_DURATION;
+                }
+
+                setStartTime(newStartTime);
+                setEndTime(newStartTime + MAX_DURATION);
+            },
+            onPanResponderRelease: () => {
+                setIsDragging(false); // Re-enable scroll
+            },
+            onPanResponderTerminate: () => {
+                setIsDragging(false); // Re-enable scroll if cancelled
+            },
+        }),
+        [audioDuration, isPlaying, pause]
+    );
+
+    // Update audioDuration when audio loads
     useEffect(() => {
-        const setupAudio = async () => {
-            try {
-                await setAudioModeAsync({
-                    playsInSilentMode: true,
-                });
-            } catch (error) {
-                console.error('Failed to setup audio mode:', error);
-            }
-        };
-
-        setupAudio();
-    }, []);
-
-    useEffect(() => {
-        if (status.duration && status.duration > 0) {
-            const durationInSeconds = status.duration;
+        if (duration && duration > 0) {
+            const durationInSeconds = duration;
 
             if (durationInSeconds < 15) {
                 showToast('Audio must be at least 15 seconds long', 'error');
@@ -55,15 +113,7 @@ export const UploadScreen = () => {;
             setStartTime(0);
             setEndTime(Math.min(15, durationInSeconds));
         }
-    }, [status.duration]);
-
-    useEffect(() => {
-        if (status.playing) {
-            setIsPlaying(true);
-        } else {
-            setIsPlaying(false);
-        }
-    }, [status.playing]);
+    }, [duration]);
 
     const pickAudio = async () => {
         try {
@@ -129,52 +179,15 @@ export const UploadScreen = () => {;
         }
     };
 
+    // REPLACED: Manual playPreview logic with timeout refs
+    // WITH: Simple toggle using the hook
     const playPreview = () => {
         if (!audioFile || audioDuration === 0) return;
 
-        if (previewTimeoutRef.current) {
-            clearTimeout(previewTimeoutRef.current);
-        }
-
         if (isPlaying) {
-            player.pause();
-            return;
-        }
-
-        player.seekTo(startTime);
-        player.play();
-
-        previewTimeoutRef.current = setTimeout(() => {
-            player.pause();
-            player.seekTo(startTime);
-        }, (endTime - startTime) * 1000);
-    };
-
-    useEffect(() => {
-        return () => {
-            if (previewTimeoutRef.current) {
-                clearTimeout(previewTimeoutRef.current);
-            }
-        };
-    }, []);
-
-    const handleStartTimeChange = (value: number) => {
-        setStartTime(value);
-        if (endTime - value > MAX_DURATION) {
-            setEndTime(value + MAX_DURATION);
-        }
-        if (endTime <= value) {
-            setEndTime(Math.min(value + 1, audioDuration));
-        }
-    };
-
-    const handleEndTimeChange = (value: number) => {
-        setEndTime(value);
-        if (value - startTime > MAX_DURATION) {
-            setStartTime(value - MAX_DURATION);
-        }
-        if (value <= startTime) {
-            setStartTime(Math.max(0, value - 1));
+            pause();
+        } else {
+            play();
         }
     };
 
@@ -235,6 +248,7 @@ export const UploadScreen = () => {;
                 style={styles.scrollView}
                 contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 20 }]}
                 showsVerticalScrollIndicator={false}
+                scrollEnabled={!isDragging}
             >
                 <View style={styles.form}>
                     <View style={styles.inputGroup}>
@@ -312,15 +326,15 @@ export const UploadScreen = () => {;
                                     </Pressable>
                                 </View>
                             ) : (
-                                    <View style={[styles.coverArtEmpty, { opacity: 0.6 }]}>
-                                        <Ionicons name="image-outline" size={32} color={theme.colors.textSecondary} />
-                                        <Text style={[styles.coverArtEmptyText, { color: theme.colors.text }]}>
-                                            Choose Cover Art
-                                        </Text>
-                                        <Text style={[styles.coverArtEmptySubtext, { color: theme.colors.textSecondary }]}>
-                                            Square image recommended
-                                        </Text>
-                                    </View>
+                                <View style={[styles.coverArtEmpty, { opacity: 0.6 }]}>
+                                    <Ionicons name="image-outline" size={32} color={theme.colors.textSecondary} />
+                                    <Text style={[styles.coverArtEmptyText, { color: theme.colors.text }]}>
+                                        Choose Cover Art
+                                    </Text>
+                                    <Text style={[styles.coverArtEmptySubtext, { color: theme.colors.textSecondary }]}>
+                                        Square image recommended
+                                    </Text>
+                                </View>
                             )}
                         </Pressable>
                     </View>
@@ -328,77 +342,134 @@ export const UploadScreen = () => {;
                     {audioFile && audioDuration >= 15 && (
                         <View style={styles.inputGroup}>
                             <View style={styles.trimHeader}>
-                                <Text style={[styles.label, { color: theme.colors.text }]}>Select Clip</Text>
-                                <Pressable style={styles.previewButton} onPress={playPreview}>
-                                    <Ionicons name={isPlaying ? "pause" : "play"} size={16} color={theme.colors.primary} />
+                                <Text style={[styles.label, { color: theme.colors.text }]}>Trim Audio</Text>
+                                <Pressable
+                                    style={[styles.previewButton, {
+                                        backgroundColor: isPlaying
+                                            ? theme.colors.primary + '15'
+                                            : 'transparent',
+                                        borderWidth: 1,
+                                        borderColor: theme.colors.primary,
+                                    }]}
+                                    onPress={playPreview}
+                                >
+                                    <Ionicons
+                                        name={isPlaying ? "pause" : "play"}
+                                        size={14}
+                                        color={theme.colors.primary}
+                                    />
                                     <Text style={[styles.previewText, { color: theme.colors.primary }]}>
                                         {isPlaying ? 'Pause' : 'Preview'}
                                     </Text>
                                 </Pressable>
                             </View>
+
                             <View style={[styles.trimContainer, {
-                                backgroundColor: theme.isDark ? '#1a1a1a' : '#f7fafc',
-                                borderColor: theme.isDark ? '#2a2a2a' : '#e5e5e5',
+                                backgroundColor: theme.isDark ? '#0a0a0a' : '#fafafa',
                             }]}>
-                                <View style={styles.timelineContainer}>
-                                    <View style={styles.timelineTrack}>
+                                {/* Waveform-style Timeline */}
+                                <View
+                                    style={styles.waveformContainer}
+                                    onLayout={(e) => {
+                                        waveformWidth.current = e.nativeEvent.layout.width;
+                                    }}
+                                >
+                                    <View
+                                        {...waveformPanResponder.panHandlers}
+                                        style={[styles.waveformTrack, {
+                                            backgroundColor: theme.isDark ? '#1a1a1a' : '#e8e8e8',
+                                        }]}
+                                    >
+                                        {/* Simulated waveform bars */}
+                                        {Array.from({ length: 40 }).map((_, i) => {
+                                            const height = 20 + Math.random() * 40;
+                                            const isInSelection =
+                                                (i / 40) >= (startTime / audioDuration) &&
+                                                (i / 40) <= (endTime / audioDuration);
+
+                                            return (
+                                                <View
+                                                    key={i}
+                                                    style={[styles.waveformBar, {
+                                                        height: `${height}%`,
+                                                        backgroundColor: isInSelection
+                                                            ? theme.colors.primary
+                                                            : theme.isDark ? '#2a2a2a' : '#d0d0d0',
+                                                        opacity: isInSelection ? 1 : 0.4,
+                                                    }]}
+                                                />
+                                            );
+                                        })}
+
+                                        {/* Selection Overlay (visual indicator only) */}
                                         <View
-                                            style={[
-                                                styles.selectionWindow,
-                                                {
-                                                    backgroundColor: theme.colors.primary + '20',
-                                                    borderColor: theme.colors.primary,
-                                                    left: `${(startTime / audioDuration) * 100}%`,
-                                                    width: `${((endTime - startTime) / audioDuration) * 100}%`,
-                                                }
-                                            ]}
+                                            style={[styles.selectionOverlay, {
+                                                left: `${(startTime / audioDuration) * 100}%`,
+                                                width: `${((endTime - startTime) / audioDuration) * 100}%`,
+                                            }]}
+                                            pointerEvents="none"
                                         >
-                                            <View style={[styles.windowEdge, { backgroundColor: theme.colors.primary }]} />
-                                            <View style={[styles.windowEdge, { backgroundColor: theme.colors.primary }]} />
+                                            {/* Left Edge Indicator */}
+                                            <View style={[styles.draggableEdge, styles.leftEdge]}>
+                                                <View style={[styles.edgeHandle, {
+                                                    backgroundColor: theme.colors.primary,
+                                                    shadowColor: theme.colors.primary,
+                                                }]}>
+                                                    <View style={[styles.edgeGrip, {
+                                                        backgroundColor: theme.isDark ? '#000' : '#fff',
+                                                    }]} />
+                                                </View>
+                                            </View>
+
+                                            {/* Right Edge Indicator */}
+                                            <View style={[styles.draggableEdge, styles.rightEdge]}>
+                                                <View style={[styles.edgeHandle, {
+                                                    backgroundColor: theme.colors.primary,
+                                                    shadowColor: theme.colors.primary,
+                                                }]}>
+                                                    <View style={[styles.edgeGrip, {
+                                                        backgroundColor: theme.isDark ? '#000' : '#fff',
+                                                    }]} />
+                                                </View>
+                                            </View>
                                         </View>
                                     </View>
                                 </View>
-                                <View style={styles.timeLabels}>
-                                    <Text style={[styles.timeText, { color: theme.colors.text }]}>
-                                        {formatTime(startTime)}
-                                    </Text>
-                                    <Text style={[styles.timeText, { color: theme.colors.primary, fontWeight: '700' }]}>
-                                        {formatTime(endTime - startTime)}
-                                    </Text>
-                                    <Text style={[styles.timeText, { color: theme.colors.text }]}>
-                                        {formatTime(endTime)}
-                                    </Text>
-                                </View>
-                                <View style={styles.slidersContainer}>
-                                    <View>
-                                        <Text style={[styles.sliderLabel, { color: theme.colors.textSecondary }]}>
+
+                                {/* Time Display */}
+                                <View style={styles.timeDisplay}>
+                                    <View style={[styles.timeChip, {
+                                        backgroundColor: theme.isDark ? '#1a1a1a' : '#ffffff',
+                                        borderColor: theme.colors.border,
+                                    }]}>
+                                        <Text style={[styles.timeLabel, { color: theme.colors.textSecondary }]}>
                                             Start
                                         </Text>
-                                        <Slider
-                                            style={styles.slider}
-                                            minimumValue={0}
-                                            maximumValue={audioDuration - 1}
-                                            value={startTime}
-                                            onValueChange={handleStartTimeChange}
-                                            minimumTrackTintColor={theme.colors.primary}
-                                            maximumTrackTintColor={theme.colors.textSecondary + '40'}
-                                            thumbTintColor={theme.colors.primary}
-                                        />
-                                    </View>
-                                    <View>
-                                        <Text style={[styles.sliderLabel, { color: theme.colors.textSecondary }]}>
-                                            End (max 15s)
+                                        <Text style={[styles.timeValue, { color: theme.colors.text }]}>
+                                            {formatTime(startTime)}
                                         </Text>
-                                        <Slider
-                                            style={styles.slider}
-                                            minimumValue={1}
-                                            maximumValue={audioDuration}
-                                            value={endTime}
-                                            onValueChange={handleEndTimeChange}
-                                            minimumTrackTintColor={theme.colors.primary}
-                                            maximumTrackTintColor={theme.colors.textSecondary + '40'}
-                                            thumbTintColor={theme.colors.primary}
-                                        />
+                                    </View>
+
+                                    <View style={[styles.durationChip, {
+                                        backgroundColor: theme.colors.primary + '15',
+                                        borderColor: theme.colors.primary,
+                                    }]}>
+                                        <Ionicons name="time-outline" size={14} color={theme.colors.primary} />
+                                        <Text style={[styles.durationValue, { color: theme.colors.primary }]}>
+                                            {formatTime(endTime - startTime)}
+                                        </Text>
+                                    </View>
+
+                                    <View style={[styles.timeChip, {
+                                        backgroundColor: theme.isDark ? '#1a1a1a' : '#ffffff',
+                                        borderColor: theme.colors.border,
+                                    }]}>
+                                        <Text style={[styles.timeLabel, { color: theme.colors.textSecondary }]}>
+                                            End
+                                        </Text>
+                                        <Text style={[styles.timeValue, { color: theme.colors.text }]}>
+                                            {formatTime(endTime)}
+                                        </Text>
                                     </View>
                                 </View>
                             </View>
@@ -427,12 +498,6 @@ export const UploadScreen = () => {;
             </ScrollView>
         </View>
     );
-};
-
-const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
 };
 
 const styles = StyleSheet.create({
@@ -513,72 +578,120 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 4,
+        marginBottom: 12,
     },
     previewButton: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 4,
+        gap: 6,
+        paddingVertical: 6,
+        paddingHorizontal: 12,
+        borderRadius: 8,
     },
     previewText: {
-        fontSize: 14,
-        fontWeight: '600',
-    },
-    trimContainer: {
-        padding: 16,
-        borderRadius: 16,
-        borderWidth: 1,
-        gap: 10,
-    },
-    timeLabels: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-    },
-    timeText: {
         fontSize: 13,
         fontWeight: '600',
     },
-    timelineContainer: {
-        width: '100%',
-        height: 50,
-        justifyContent: 'center',
-        marginBottom: -8,
+    trimContainer: {
+        padding: 20,
+        borderRadius: 20,
+        gap: 16,
     },
-    timelineTrack: {
+    waveformContainer: {
         width: '100%',
-        height: 36,
-        backgroundColor: 'rgba(150, 150, 150, 0.2)',
-        borderRadius: 8,
+        height: 80,
+        justifyContent: 'center',
+    },
+    waveformTrack: {
+        width: '100%',
+        height: '100%',
+        borderRadius: 12,
         position: 'relative',
         overflow: 'hidden',
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 2,
+        paddingHorizontal: 4,
     },
-    selectionWindow: {
+    waveformBar: {
+        flex: 1,
+        borderRadius: 2,
+    },
+    selectionOverlay: {
         position: 'absolute',
         height: '100%',
-        borderWidth: 2,
-        borderRadius: 6,
+        top: 0,
+    },
+    draggableEdge: {
+        position: 'absolute',
+        height: '100%',
+        width: 40,
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 10,
+    },
+    leftEdge: {
+        left: -20,
+    },
+    rightEdge: {
+        right: -20,
+    },
+    edgeHandle: {
+        width: 6,
+        height: '100%',
+        borderRadius: 3,
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.5,
+        shadowRadius: 6,
+        elevation: 5,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    edgeGrip: {
+        width: 2,
+        height: 20,
+        borderRadius: 1,
+        opacity: 0.6,
+    },
+    timeDisplay: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
+        marginTop: 4,
     },
-    windowEdge: {
-        width: 4,
-        height: '60%',
-        borderRadius: 2,
+    timeChip: {
+        paddingVertical: 8,
+        paddingHorizontal: 12,
+        borderRadius: 10,
+        borderWidth: 1,
+        alignItems: 'center',
+        minWidth: 70,
     },
-    slidersContainer: {
-        gap: 10,
-        marginTop: 6,
-    },
-    sliderLabel: {
-        fontSize: 12,
-        fontWeight: '500',
+    timeLabel: {
+        fontSize: 10,
+        fontWeight: '600',
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
         marginBottom: 2,
     },
-    slider: {
-        width: '100%',
-        height: 32,
+    timeValue: {
+        fontSize: 15,
+        fontWeight: '700',
+        letterSpacing: -0.3,
+    },
+    durationChip: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        paddingVertical: 10,
+        paddingHorizontal: 16,
+        borderRadius: 12,
+        borderWidth: 1.5,
+    },
+    durationValue: {
+        fontSize: 16,
+        fontWeight: '700',
+        letterSpacing: -0.5,
     },
     uploadButton: {
         flexDirection: 'row',
