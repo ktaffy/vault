@@ -1,4 +1,4 @@
-// frontend/src/screens/auth/SignupScreen.tsx (REFACTORED)
+// frontend/src/screens/auth/SignupScreen.tsx (WITH VALIDATORS)
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { useTheme } from '../../hooks/useTheme';
@@ -7,6 +7,7 @@ import { Button, Input } from '../../components/common';
 import { useRouter } from 'expo-router';
 import { useToast } from '../../context/ToastContext';
 import { AuthScreenLayout } from '../../components/AuthScreenLayout';
+import { validateEmail, validatePassword, validateUsername, validateFields } from '../../utils/validation';
 
 export const SignupScreen = () => {
     const router = useRouter();
@@ -20,23 +21,14 @@ export const SignupScreen = () => {
     const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
     const validateForm = () => {
-        const newErrors: { [key: string]: string } = {};
+        const validation = validateFields({
+            username: validateUsername(username),
+            email: validateEmail(email),
+            password: validatePassword(password),
+        });
 
-        if (username.trim().length < 3) {
-            newErrors.username = 'Username must be at least 3 characters';
-        }
-
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email.trim())) {
-            newErrors.email = 'Please enter a valid email';
-        }
-
-        if (password.length < 8) {
-            newErrors.password = 'Password must be at least 8 characters';
-        }
-
-        setErrors(newErrors);
-        return Object.keys(newErrors).length === 0;
+        setErrors(validation.errors);
+        return validation.valid;
     };
 
     const handleSignup = async () => {

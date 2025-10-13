@@ -1,4 +1,4 @@
-// frontend/src/screens/auth/ForgotPasswordScreen.tsx (REFACTORED)
+// frontend/src/screens/auth/ForgotPasswordScreen.tsx (WITH VALIDATORS)
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { useTheme } from '../../hooks/useTheme';
@@ -7,6 +7,7 @@ import { authService } from '../../services/api/auth';
 import { useRouter } from 'expo-router';
 import { useToast } from '../../context/ToastContext';
 import { AuthScreenLayout } from '../../components/AuthScreenLayout';
+import { validateEmail } from '../../utils/validation';
 
 export const ForgotPasswordScreen = () => {
     const router = useRouter();
@@ -17,14 +18,11 @@ export const ForgotPasswordScreen = () => {
     const [loading, setLoading] = useState(false);
 
     const handleSubmit = async () => {
-        if (!email.trim()) {
-            showToast('Please enter your email address', 'error');
-            return;
-        }
+        // Validate email using utility
+        const emailValidation = validateEmail(email);
 
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email.trim())) {
-            showToast('Please enter a valid email address', 'error');
+        if (!emailValidation.valid) {
+            showToast(emailValidation.error || 'Invalid email', 'error');
             return;
         }
 
