@@ -3,6 +3,8 @@ package swipe
 import (
 	"context"
 	"time"
+
+	"github.com/ktaffy/vault/backend/internal/snippet"
 )
 
 type Swipe struct {
@@ -26,8 +28,10 @@ type SwipeRes struct {
 type Repo interface {
 	CreateSwipe(ctx context.Context, swipe *Swipe) error
 	HasUserSwipedSnippet(ctx context.Context, userID, snippetID int64) (bool, error)
+	GetLikedSnippets(ctx context.Context, userID int64) ([]*snippet.Snippet, error)
 }
 
 type Service interface {
 	RecordSwipe(c context.Context, userID int64, req *SwipeReq) (*SwipeRes, error)
+	GetLikedSnippets(c context.Context, userID int64) ([]*snippet.Snippet, error)
 }

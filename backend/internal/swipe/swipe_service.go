@@ -69,3 +69,15 @@ func (s *service) RecordSwipe(c context.Context, userID int64, req *SwipeReq) (*
 
 	return res, nil
 }
+
+func (s *service) GetLikedSnippets(c context.Context, userID int64) ([]*snippet.Snippet, error) {
+	ctx, cancel := context.WithTimeout(c, s.timeOut)
+	defer cancel()
+
+	snippets, err := s.swipeRepo.GetLikedSnippets(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	return snippets, nil
+}
