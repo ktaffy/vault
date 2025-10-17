@@ -9,6 +9,7 @@ interface UseAudioPlaybackOptions {
     onProgress?: (progress: number) => void;
     startTime?: number;
     endTime?: number;
+    cachedPlayer?: any;
 }
 
 interface UseAudioPlaybackReturn {
@@ -49,9 +50,11 @@ export const useAudioPlayback = (
         onProgress,
         startTime = 0,
         endTime,
+        cachedPlayer,
     } = options;
 
-    const player = useAudioPlayer(audioUrl);
+    const newPlayer = useAudioPlayer(audioUrl);
+    const player = cachedPlayer || newPlayer;
     const status = useAudioPlayerStatus(player);
 
     const [isPlaying, setIsPlaying] = useState(false);
@@ -79,10 +82,13 @@ export const useAudioPlayback = (
 
     // Auto-play if enabled
     useEffect(() => {
-        if (autoPlay && status.isLoaded && !hasStarted.current) {
-            play();
+        if (autoPlay && !hasStarted.current) {
+            // Cached players are already loaded, new players need to wait
+            if (cachedPlayer || status.isLoaded) {
+                play();
+            }
         }
-    }, [autoPlay, status.isLoaded]);
+    }, [autoPlay, status.isLoaded, cachedPlayer]);
 
     // Update progress
     useEffect(() => {

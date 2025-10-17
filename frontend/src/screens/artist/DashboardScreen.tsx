@@ -5,6 +5,7 @@ import { useScreenSetup } from '../../hooks/useScreenSetup';
 import { snippetService, Snippet } from '../../services/api/snippets';
 import { useAudioPlayer, useAudioPlayerStatus, setAudioModeAsync } from 'expo-audio';
 import { useFocusEffect } from '@react-navigation/native';
+import { useAudioPlayback } from '../../hooks/useAudioPlayback';
 
 setAudioModeAsync({
     playsInSilentMode: true,
@@ -58,17 +59,33 @@ export const DashboardScreen = () => {
                 setCurrentPlayer(null);
                 setAudioProgress(0);
             }
-            setTimeout(() => {
-                setPlayingSnippetId(snippet.id);
-                setCurrentPlayer(snippet);
-                setAudioProgress(0);
-            }, 50);
+
+            setPlayingSnippetId(snippet.id);
+            setCurrentPlayer(snippet);
+            setAudioProgress(0);
         }
     };
 
     useEffect(() => {
         fetchSnippets();
     }, []);
+
+    useFocusEffect(
+        useCallback(() => {
+            return () => {
+                setPlayingSnippetId(null);
+                setCurrentPlayer(null);
+                setAudioProgress(0);
+
+                audioCache.forEach((player) => {
+                    try {
+                        player.pause();
+                    } catch (error) {
+                    }
+                });
+            };
+        }, [])
+    );
 
     useFocusEffect(
         useCallback(() => {
@@ -284,7 +301,7 @@ const SnippetCard: React.FC<{
                 </View>
             </View>
         </Pressable>
-    );
+);
 
 const AudioPlayerComponent: React.FC<{
     snippet: Snippet;
@@ -292,55 +309,49 @@ const AudioPlayerComponent: React.FC<{
     onProgress: (progress: number) => void;
 }> = ({ snippet, onEnd, onProgress }) => {
     const cachedPlayer = audioCache.get(snippet.audio_url);
-    const newPlayer = useAudioPlayer(snippet.audio_url);
-    const player = cachedPlayer || newPlayer;
-    const status = useAudioPlayerStatus(player);
-    const [hasStarted, setHasStarted] = useState(false);
+
+    const { play, pause, isLoaded } = useAudioPlayback(snippet.audio_url, {
+        autoPlay: false,
+        onEnd,
+        onProgress,
+        cachedPlayer,
+    });
 
     useEffect(() => {
+        audioCache.forEach((player, url) => {
+            if (url !== snippet.audio_url) {
+                try {
+                    player.pause();
+                } catch (error) {
+                }
+            }
+        });
+
         if (cachedPlayer) {
             try {
                 cachedPlayer.seekTo(0);
                 cachedPlayer.play();
-                setHasStarted(true);
             } catch (error) {
                 console.error('Cached player error:', error);
             }
-        } else if (status.isLoaded) {
-            try {
-                player.play();
-                setHasStarted(true);
-            } catch (error) {
-                console.error('Player play error:', error);
-            }
+        } else if (isLoaded) {
+            play();
         }
 
         return () => {
             try {
-                if (player && status.isLoaded) {
-                    player.pause();
+                if (cachedPlayer) {
+                    cachedPlayer.pause();
+                } else {
+                    pause();
                 }
             } catch (error) {
-                // Ignore cleanup errors
             }
         };
-    }, [snippet.audio_url]);
-
-    useEffect(() => {
-        if (status.isLoaded && status.duration > 0) {
-            const progress = status.currentTime / status.duration;
-            onProgress(progress);
-        }
-    }, [status.currentTime, status.duration]);
-
-    useEffect(() => {
-        if (hasStarted && status.isLoaded && !status.playing && status.currentTime > 0) {
-            onEnd();
-        }
-    }, [status.playing, status.isLoaded, hasStarted]);
+    }, [snippet.audio_url, isLoaded]);
 
     return null;
-    };
+};
 const formatTime = (seconds: number) => {
     const secs = Math.floor(seconds);
     return `0:${secs.toString().padStart(2, '0')}`;
