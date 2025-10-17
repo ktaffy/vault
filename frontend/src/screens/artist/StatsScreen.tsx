@@ -5,6 +5,7 @@ import { useScreenSetup } from '../../hooks/useScreenSetup';
 import { useLocalSearchParams } from 'expo-router';
 import { snippetService, Snippet } from '../../services/api/snippets';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
+import { useAudioPlayback } from '../../hooks/useAudioPlayback';
 
 const audioCache = new Map<string, any>();
 
@@ -38,6 +39,25 @@ export const StatsScreen = () => {
     useEffect(() => {
         fetchSnippet();
     }, [snippetId]);
+
+    useEffect(() => {
+        return () => {
+            if (isPlaying) {
+                setIsPlaying(false);
+                setAudioProgress(0);
+
+                if (snippet?.audio_url) {
+                    const cachedPlayer = audioCache.get(snippet.audio_url);
+                    if (cachedPlayer) {
+                        try {
+                            cachedPlayer.pause();
+                        } catch (error) {
+                        }
+                    }
+                }
+            }
+        };
+    }, [isPlaying, snippet?.audio_url]);
 
     useEffect(() => {
         if (showDeleteConfirm) {
@@ -487,44 +507,37 @@ const AudioPlayerComponent: React.FC<{
     onProgress: (progress: number) => void;
 }> = ({ snippet, onEnd, onProgress }) => {
     const cachedPlayer = audioCache.get(snippet.audio_url);
-    const newPlayer = useAudioPlayer(snippet.audio_url);
-    const player = cachedPlayer || newPlayer;
-    const status = useAudioPlayerStatus(player);
-    const [hasStarted, setHasStarted] = useState(false);
+
+    const { play, pause, isLoaded } = useAudioPlayback(snippet.audio_url, {
+        autoPlay: false,
+        onEnd,
+        onProgress,
+        cachedPlayer,
+    });
 
     useEffect(() => {
         if (cachedPlayer) {
-            cachedPlayer.seekTo(0);
-            cachedPlayer.play();
-            setHasStarted(true);
-        } else if (status.isLoaded) {
-            player.play();
-            setHasStarted(true);
+            try {
+                cachedPlayer.seekTo(0);
+                cachedPlayer.play();
+            } catch (error) {
+                console.error('Cached player error:', error);
+            }
+        } else if (isLoaded) {
+            play();
         }
 
         return () => {
             try {
-                if (player && status.isLoaded) {
-                    player.pause();
+                if (cachedPlayer) {
+                    cachedPlayer.pause();
+                } else {
+                    pause();
                 }
             } catch (error) {
-                // Ignore cleanup errors
             }
         };
-    }, [snippet.audio_url]);
-
-    useEffect(() => {
-        if (status.isLoaded && status.duration > 0) {
-            const progress = status.currentTime / status.duration;
-            onProgress(progress);
-        }
-    }, [status.currentTime, status.duration]);
-
-    useEffect(() => {
-        if (hasStarted && status.isLoaded && !status.playing && status.currentTime > 0) {
-            onEnd();
-        }
-    }, [status.playing, status.isLoaded, hasStarted]);
+    }, [snippet.audio_url, isLoaded]);
 
     return null;
 };
