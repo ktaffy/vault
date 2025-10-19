@@ -6,8 +6,8 @@ import { useLocalSearchParams } from 'expo-router';
 import { snippetService, Snippet } from '../../services/api/snippets';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { useAudioPlayback } from '../../hooks/useAudioPlayback';
+import { audioCache } from '../../utils/audioCache';
 
-const audioCache = new Map<string, any>();
 
 const PreloadAudio: React.FC<{ audioUrl: string }> = ({ audioUrl }) => {
     const player = useAudioPlayer(audioUrl);

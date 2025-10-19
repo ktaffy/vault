@@ -1,7 +1,9 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { authService } from '../services/api/auth';
 import { secureStorage } from '../services/storage/SecureStorage';
+import { decodeToken, isTokenExpired } from '../utils/jwt';
+import { audioCache } from '../utils/audioCache';
 import {
     setUser,
     setAccessToken,
@@ -28,11 +30,29 @@ export const useAuth = () => {
         try {
             const token = await secureStorage.getAccessToken();
             if (token) {
-                dispatch(setAccessToken(token));
-                dispatch(setAuthenticated(true));
+                if (isTokenExpired(token)) {
+                    await secureStorage.deleteAccessToken();
+                    dispatch(clearAuth());
+                    return;
+                }
+
+                const userInfo = decodeToken(token);
+                if (userInfo) {
+                    dispatch(setAccessToken(token));
+                    dispatch(setUser({
+                        id: userInfo.id,
+                        username: userInfo.username,
+                        email: '',
+                    }));
+                    dispatch(setAuthenticated(true));
+                } else {
+                    await secureStorage.deleteAccessToken();
+                    dispatch(clearAuth());
+                }
             }
         } catch (error) {
             console.error('Auth check failed:', error);
+            dispatch(clearAuth());
         } finally {
             dispatch(setLoading(false));
         }
@@ -94,6 +114,7 @@ export const useAuth = () => {
         } catch (err) {
             console.error('Logout error:', err);
         } finally {
+            audioCache.clear();
             await secureStorage.deleteAccessToken();
             dispatch(clearAuth());
             dispatch(setLoading(false));

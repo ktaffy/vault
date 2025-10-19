@@ -6,12 +6,12 @@ import { snippetService, Snippet } from '../../services/api/snippets';
 import { useAudioPlayer, useAudioPlayerStatus, setAudioModeAsync } from 'expo-audio';
 import { useFocusEffect } from '@react-navigation/native';
 import { useAudioPlayback } from '../../hooks/useAudioPlayback';
+import { audioCache } from '../../utils/audioCache';
 
 setAudioModeAsync({
     playsInSilentMode: true,
 }).catch(console.error);
 
-const audioCache = new Map<string, any>();
 
 const PreloadAudio: React.FC<{ audioUrl: string }> = ({ audioUrl }) => {
     const player = useAudioPlayer(audioUrl);
