@@ -15,7 +15,7 @@ export const LoginScreen = () => {
 
     const handleLogin = async () => {
         if (!identifier.trim() || !password.trim()) {
-            showToast('Please enter both email/username and password', 'error');
+            showToast('Please enter both email or username and password', 'error');
             return;
         }
 

@@ -37,7 +37,7 @@ function RootLayoutContent() {
         }
     }, [isAuthenticated, segments, isReady]);
 
-    if (!isReady || loading) {
+    if (!isReady) {
         return (
             <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.colors.background }}>
                 <ActivityIndicator size="large" color={theme.colors.primary} />

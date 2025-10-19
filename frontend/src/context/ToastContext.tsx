@@ -13,11 +13,12 @@ interface ToastContextType {
     showToast: (message: string, type: ToastType, duration?: number) => void;
 }
 
+let toastId = 0;
+
 const ToastContext = createContext<ToastContextType | undefined>(undefined);
 
 export const ToastProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const [toasts, setToasts] = useState<ToastConfig[]>([]);
-    let toastId = 0;
 
     const showToast = (message: string, type: ToastType, duration = 3000) => {
         const id = toastId++;
