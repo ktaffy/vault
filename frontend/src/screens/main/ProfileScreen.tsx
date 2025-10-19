@@ -93,7 +93,6 @@ export const ProfileScreen = () => {
             return;
         }
 
-        // Check if anything actually changed
         if (editUsername === user.username && editEmail === user.email && !editProfilePic) {
             setShowEditModal(false);
             return;
@@ -103,22 +102,39 @@ export const ProfileScreen = () => {
         setEditError('');
 
         try {
-            const response = await authService.updateProfile({
+            const updateData: any = {
                 username: editUsername !== user.username ? editUsername : undefined,
                 email: editEmail !== user.email ? editEmail : undefined,
-            });
+            };
 
-            // Update local user state
+            if (editProfilePic) {
+                const filename = editProfilePic.split('/').pop();
+                const match = /\.(\w+)$/.exec(filename || '');
+                const type = match ? `image/${match[1]}` : 'image/jpeg';
+
+                updateData.profile_pic = {
+                    uri: editProfilePic,
+                    type: type,
+                    name: filename || 'profile.jpg',
+                };
+            }
+
+            const response = await authService.updateProfile(updateData);
+            console.log('Update response:', response);
+            console.log('Profile pic from response:', response.user.profile_pic);
+            console.log('Current user before update:', user);
+
             dispatch(updateUserProfile({
                 username: response.user.username,
                 email: response.user.email,
+                profile_pic: response.user.profile_pic,
             }));
+
+            console.log('Dispatched update with profile_pic:', response.user.profile_pic);
 
             setShowEditModal(false);
             setEditProfilePic(null);
 
-            // Show success toast if you have toast context
-            // showToast('Profile updated successfully', 'success');
         } catch (error: any) {
             setEditError(error.message || 'Failed to update profile');
         } finally {
@@ -179,9 +195,16 @@ export const ProfileScreen = () => {
                     <View style={[styles.avatarContainer, {
                         backgroundColor: theme.isDark ? 'rgba(148,120,233,0.15)' : 'rgba(148,120,233,0.1)'
                     }]}>
-                        <Text style={[styles.avatarText, { color: theme.colors.primary }]}>
-                            {user.username.charAt(0).toUpperCase()}
-                        </Text>
+                        {user.profile_pic ? (
+                            <Image
+                                source={{ uri: user.profile_pic }}
+                                style={styles.avatarImage}
+                            />
+                        ) : (
+                            <Text style={[styles.avatarText, { color: theme.colors.primary }]}>
+                                {user.username.charAt(0).toUpperCase()}
+                            </Text>
+                        )}
                     </View>
 
                     <Text style={[styles.username, { color: theme.colors.text }]}>
@@ -374,6 +397,11 @@ export const ProfileScreen = () => {
                                 {editProfilePic ? (
                                     <Image
                                         source={{ uri: editProfilePic }}
+                                        style={styles.modalAvatarImage}
+                                    />
+                                ) : user.profile_pic ? (
+                                    <Image
+                                        source={{ uri: user.profile_pic }}
                                         style={styles.modalAvatarImage}
                                     />
                                 ) : (
@@ -708,6 +736,7 @@ const styles = StyleSheet.create({
     modalAvatarImage: {
         width: '100%',
         height: '100%',
+        borderRadius: 40,
     },
     modalAvatarText: {
         fontSize: 32,
@@ -756,5 +785,10 @@ const styles = StyleSheet.create({
     snippetMetaText: {
         fontSize: 13,
         fontWeight: '400',
+    },
+    avatarImage: {
+        width: '100%',
+        height: '100%',
+        borderRadius: 48,
     },
 });

@@ -32,21 +32,21 @@ export const useAuth = () => {
             if (token) {
                 if (isTokenExpired(token)) {
                     await secureStorage.deleteAccessToken();
+                    await secureStorage.deleteUser();
                     dispatch(clearAuth());
                     return;
                 }
 
+                const storedUser = await secureStorage.getUser(); 
                 const userInfo = decodeToken(token);
-                if (userInfo) {
+
+                if (userInfo && storedUser) {
                     dispatch(setAccessToken(token));
-                    dispatch(setUser({
-                        id: userInfo.id,
-                        username: userInfo.username,
-                        email: '',
-                    }));
+                    dispatch(setUser(storedUser));
                     dispatch(setAuthenticated(true));
                 } else {
                     await secureStorage.deleteAccessToken();
+                    await secureStorage.deleteUser();
                     dispatch(clearAuth());
                 }
             }
@@ -87,12 +87,14 @@ export const useAuth = () => {
             const response = await authService.login({ identifier, password });
 
             await secureStorage.saveAccessToken(response.access_token);
+            await secureStorage.saveUser(response.user);
 
             dispatch(setAccessToken(response.access_token));
             dispatch(setUser({
                 id: response.user.id,
                 username: response.user.username,
                 email: response.user.email,
+                profile_pic: response.user.profile_pic,
             }));
             dispatch(setAuthenticated(true));
 
@@ -116,6 +118,7 @@ export const useAuth = () => {
         } finally {
             audioCache.clear();
             await secureStorage.deleteAccessToken();
+            await secureStorage.deleteUser();
             dispatch(clearAuth());
             dispatch(setLoading(false));
         }

@@ -7,6 +7,7 @@ interface User {
     email: string;
     isArtist?: boolean;
     emailVerified?: boolean;
+    profile_pic?: string;
 }
 
 interface AuthState {

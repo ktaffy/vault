@@ -24,12 +24,14 @@ export interface LoginResponse {
         id: string;
         username: string;
         email: string;
+        profile_pic?: string;
     };
 }
 
 export interface UpdateProfileRequest {
     username?: string;
     email?: string;
+    profile_pic?: any;
 }
 
 export interface UpdateProfileResponse {
@@ -38,6 +40,7 @@ export interface UpdateProfileResponse {
         id: string;
         username: string;
         email: string;
+        profile_pic?: string;
     };
 }
 
@@ -72,7 +75,21 @@ export const authService = {
     },
 
     updateProfile: async (data: UpdateProfileRequest): Promise<UpdateProfileResponse> => {
-        return apiClient.put<UpdateProfileResponse>('/update-profile', data, true);
+        const formData = new FormData();
+
+        if (data.username) {
+            formData.append('username', data.username);
+        }
+
+        if (data.email) {
+            formData.append('email', data.email);
+        }
+
+        if (data.profile_pic) {
+            formData.append('profile_pic', data.profile_pic);
+        }
+
+        return apiClient.put<UpdateProfileResponse>('/update-profile', formData, true);
     },
 
     verifyEmail: async (data: VerifyEmailRequest): Promise<{ message: string }> => {
