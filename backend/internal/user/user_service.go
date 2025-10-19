@@ -106,9 +106,10 @@ func (s *service) Login(c context.Context, req *LoginUserReq) (*LoginUserRes, st
 		AccessToken: accessToken,
 		ExpiresIn:   int(s.config.AccessTokenDuration.Seconds()),
 		User: UserInfo{
-			ID:       userIDStr,
-			Username: u.Username,
-			Email:    u.Email,
+			ID:         userIDStr,
+			Username:   u.Username,
+			Email:      u.Email,
+			ProfilePic: u.ProfilePic,
 		},
 	}
 
@@ -127,7 +128,7 @@ func (s *service) Logout(c context.Context, refreshToken string) error {
 	return s.Repo.RevokeUserTokens(ctx, userID)
 }
 
-func (s *service) UpdateProfile(c context.Context, userID int64, req *UpdateProfileReq) (*UpdateProfileRes, error) {
+func (s *service) UpdateProfile(c context.Context, userID int64, req *UpdateProfileReq, profilePicData []byte, profilePicFilename string) (*UpdateProfileRes, error) {
 	ctx, cancel := context.WithTimeout(c, s.timeOut)
 	defer cancel()
 
@@ -146,7 +147,15 @@ func (s *service) UpdateProfile(c context.Context, userID int64, req *UpdateProf
 			return nil, err
 		}
 		updates["email"] = cleanEmail
-		updates["email_verified"] = false // reset status on email change
+		updates["email_verified"] = false
+	}
+
+	if len(profilePicData) > 0 {
+		profilePicURL, err := util.UploadImageFile(profilePicData, profilePicFilename)
+		if err != nil {
+			return nil, fmt.Errorf("failed to upload profile picture: %w", err)
+		}
+		updates["pfp_url"] = profilePicURL
 	}
 
 	if len(updates) == 0 {
@@ -161,9 +170,10 @@ func (s *service) UpdateProfile(c context.Context, userID int64, req *UpdateProf
 	res := &UpdateProfileRes{
 		Message: "Profile updated successfully",
 		User: UserInfo{
-			ID:       strconv.Itoa(int(updatedUser.ID)),
-			Username: updatedUser.Username,
-			Email:    updatedUser.Email,
+			ID:         strconv.Itoa(int(updatedUser.ID)),
+			Username:   updatedUser.Username,
+			Email:      updatedUser.Email,
+			ProfilePic: updatedUser.ProfilePic,
 		},
 	}
 
@@ -206,9 +216,10 @@ func (s *service) RefreshAccess(c context.Context, refreshToken string) (*LoginU
 		AccessToken: accessToken,
 		ExpiresIn:   int(s.config.AccessTokenDuration.Seconds()),
 		User: UserInfo{
-			ID:       userIDStr,
-			Username: user.Username,
-			Email:    user.Email,
+			ID:         userIDStr,
+			Username:   user.Username,
+			Email:      user.Email,
+			ProfilePic: user.ProfilePic,
 		},
 	}
 	return resp, newRefreshToken, nil

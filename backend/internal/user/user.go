@@ -3,12 +3,13 @@ package user
 import "context"
 
 type User struct {
-	ID       int64  `json:"id" db:"id"`
-	Username string `json:"username" db:"username"`
-	Email    string `json:"email" db:"email"`
-	Password string `json:"password" db:"password"`
-	IsArtist bool   `json:"is_artist" db:"is_artist"`
-	IsActive bool   `string:"is_active" db:"is_active"`
+	ID         int64   `json:"id" db:"id"`
+	Username   string  `json:"username" db:"username"`
+	Email      string  `json:"email" db:"email"`
+	Password   string  `json:"password" db:"password"`
+	IsArtist   bool    `json:"is_artist" db:"is_artist"`
+	IsActive   bool    `string:"is_active" db:"is_active"`
+	ProfilePic *string `json:"profile_pic" db:"pfp_url"`
 }
 
 type CreateUserReq struct {
@@ -35,9 +36,10 @@ type LoginUserRes struct {
 }
 
 type UserInfo struct {
-	ID       string `json:"id"`
-	Username string `json:"username"`
-	Email    string `json:"email"`
+	ID         string  `json:"id"`
+	Username   string  `json:"username"`
+	Email      string  `json:"email"`
+	ProfilePic *string `json:"profile_pic,omitempty"`
 }
 
 type UpdateProfileReq struct {
@@ -115,7 +117,7 @@ type Service interface {
 	Login(c context.Context, req *LoginUserReq) (*LoginUserRes, string, error)
 	RefreshAccess(c context.Context, refreshToken string) (*LoginUserRes, string, error)
 	Logout(c context.Context, refreshToken string) error
-	UpdateProfile(c context.Context, userID int64, req *UpdateProfileReq) (*UpdateProfileRes, error)
+	UpdateProfile(c context.Context, userID int64, req *UpdateProfileReq, profilePicData []byte, profilePicFilename string) (*UpdateProfileRes, error)
 	ToggleArtist(c context.Context, userID int64) (*UpdateArtistRes, error)
 	SendVerificationEmail(c context.Context, userID int64) error
 	VerifyEmail(c context.Context, token string) error

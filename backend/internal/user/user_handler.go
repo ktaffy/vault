@@ -1,6 +1,7 @@
 package user
 
 import (
+	"io"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -63,16 +64,40 @@ func (h *Handler) UpdateProfile(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 		return
 	}
-	var req UpdateProfileReq
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+
+	err := c.Request.ParseMultipartForm(10 << 20)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to parse form"})
 		return
 	}
-	resp, err := h.Service.UpdateProfile(c.Request.Context(), userID.(int64), &req)
+
+	username := c.PostForm("username")
+	email := c.PostForm("email")
+
+	var profilePicData []byte
+	var profilePicFilename string
+	file, fileHeader, err := c.Request.FormFile("profile_pic")
+	if err == nil {
+		defer file.Close()
+		profilePicData, err = io.ReadAll(file)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to read profile picture"})
+			return
+		}
+		profilePicFilename = fileHeader.Filename
+	}
+
+	req := &UpdateProfileReq{
+		Username: username,
+		Email:    email,
+	}
+
+	resp, err := h.Service.UpdateProfile(c.Request.Context(), userID.(int64), req, profilePicData, profilePicFilename)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+
 	c.JSON(http.StatusOK, resp)
 }
 
