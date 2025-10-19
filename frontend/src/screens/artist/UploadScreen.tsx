@@ -24,40 +24,34 @@ export const UploadScreen = () => {
     const waveformWidth = useRef(0);
     const [isDragging, setIsDragging] = useState(false);
 
-    // REPLACED: All the manual audio player setup, useEffects, and cleanup
-    // WITH: One clean hook call
     const {
         isPlaying,
         duration,
         play,
         pause,
+        seekTo
     } = useAudioPlayback(audioFile?.uri || '', {
         autoPlay: false,
         startTime,
         endTime,
     });
 
-    // Pan responder for the entire waveform - drag anywhere to position the 15s window
     const waveformPanResponder = useMemo(() =>
         PanResponder.create({
             onStartShouldSetPanResponder: () => true,
             onMoveShouldSetPanResponder: () => true,
             onPanResponderGrant: (evt) => {
-                setIsDragging(true); // Disable scroll
+                setIsDragging(true);
                 if (isPlaying) pause();
 
-                // Calculate position from touch
                 const touchX = evt.nativeEvent.locationX;
                 if (waveformWidth.current === 0 || audioDuration === 0) return;
 
-                // Calculate the center time of the 15s window based on touch
                 const touchPercent = touchX / waveformWidth.current;
                 const touchTime = touchPercent * audioDuration;
 
-                // Center the 15s window on the touch point
                 let newStartTime = touchTime - (MAX_DURATION / 2);
 
-                // Adjust if it goes out of bounds
                 if (newStartTime < 0) {
                     newStartTime = 0;
                 } else if (newStartTime + MAX_DURATION > audioDuration) {
@@ -70,15 +64,12 @@ export const UploadScreen = () => {
             onPanResponderMove: (evt) => {
                 if (waveformWidth.current === 0 || audioDuration === 0) return;
 
-                // Calculate new position based on current touch location
                 const touchX = evt.nativeEvent.locationX;
                 const touchPercent = touchX / waveformWidth.current;
                 const touchTime = touchPercent * audioDuration;
 
-                // Center the 15s window on the current touch point
                 let newStartTime = touchTime - (MAX_DURATION / 2);
 
-                // Adjust if it goes out of bounds
                 if (newStartTime < 0) {
                     newStartTime = 0;
                 } else if (newStartTime + MAX_DURATION > audioDuration) {
@@ -89,16 +80,15 @@ export const UploadScreen = () => {
                 setEndTime(newStartTime + MAX_DURATION);
             },
             onPanResponderRelease: () => {
-                setIsDragging(false); // Re-enable scroll
+                setIsDragging(false);
             },
             onPanResponderTerminate: () => {
-                setIsDragging(false); // Re-enable scroll if cancelled
+                setIsDragging(false);
             },
         }),
         [audioDuration, isPlaying, pause]
     );
 
-    // Update audioDuration when audio loads
     useEffect(() => {
         if (duration && duration > 0) {
             const durationInSeconds = duration;
@@ -179,14 +169,13 @@ export const UploadScreen = () => {
         }
     };
 
-    // REPLACED: Manual playPreview logic with timeout refs
-    // WITH: Simple toggle using the hook
     const playPreview = () => {
         if (!audioFile || audioDuration === 0) return;
 
         if (isPlaying) {
             pause();
         } else {
+            seekTo(startTime);
             play();
         }
     };
