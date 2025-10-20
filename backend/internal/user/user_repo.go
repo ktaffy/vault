@@ -250,3 +250,24 @@ func (r *repo) DeleteUser(ctx context.Context, userID int64) error {
 	}
 	return nil
 }
+
+// Check for existence (before updates)
+func (r *repo) CheckUsernameExists(ctx context.Context, username string, excludeUserID int64) (bool, error) {
+	var exists bool
+	query := "SELECT EXISTS(SELECT 1 FROM users WHERE username = $1 AND id != $2 AND is_active = TRUE)"
+	err := r.db.QueryRowContext(ctx, query, username, excludeUserID).Scan(&exists)
+	if err != nil {
+		return false, err
+	}
+	return exists, nil
+}
+
+func (r *repo) CheckEmailExists(ctx context.Context, email string, excludeUserID int64) (bool, error) {
+	var exists bool
+	query := "SELECT EXISTS(SELECT 1 FROM users WHERE email = $1 AND id != $2 AND is_active = TRUE)"
+	err := r.db.QueryRowContext(ctx, query, email, excludeUserID).Scan(&exists)
+	if err != nil {
+		return false, err
+	}
+	return exists, nil
+}

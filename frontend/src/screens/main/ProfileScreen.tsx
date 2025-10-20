@@ -1,4 +1,3 @@
-// frontend/src/screens/main/ProfileScreen.tsx
 import React, { useState, useEffect } from 'react';
 import {
     View,
@@ -14,6 +13,7 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
+import { validateEmail } from '../../utils/validation';
 import { useScreenSetup } from '../../hooks/useScreenSetup';
 import { useAuth } from '../../hooks/useAuth';
 import { useDispatch } from 'react-redux';
@@ -51,7 +51,6 @@ export const ProfileScreen = () => {
 
     const handlePickImage = async () => {
         try {
-            // Request permission
             const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
             if (status !== 'granted') {
@@ -59,9 +58,8 @@ export const ProfileScreen = () => {
                 return;
             }
 
-            // Launch image picker
             const result = await ImagePicker.launchImageLibraryAsync({
-                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                mediaTypes: 'images',
                 allowsEditing: true,
                 aspect: [1, 1],
                 quality: 0.8,
@@ -88,8 +86,24 @@ export const ProfileScreen = () => {
             return;
         }
 
+        if (editUsername.trim().length < 3) {
+            setEditError('Username must be at least 3 characters');
+            return;
+        }
+
+        if (editUsername.trim().length > 50) {
+            setEditError('Username must be no more than 50 characters');
+            return;
+        }
+
         if (!editEmail.trim()) {
             setEditError('Email is required');
+            return;
+        }
+
+        const emailValidation = validateEmail(editEmail.trim());
+        if (!emailValidation.valid) {
+            setEditError(emailValidation.error || 'Invalid email format');
             return;
         }
 
@@ -120,9 +134,6 @@ export const ProfileScreen = () => {
             }
 
             const response = await authService.updateProfile(updateData);
-            console.log('Update response:', response);
-            console.log('Profile pic from response:', response.user.profile_pic);
-            console.log('Current user before update:', user);
 
             dispatch(updateUserProfile({
                 username: response.user.username,
@@ -130,13 +141,26 @@ export const ProfileScreen = () => {
                 profile_pic: response.user.profile_pic,
             }));
 
-            console.log('Dispatched update with profile_pic:', response.user.profile_pic);
-
             setShowEditModal(false);
             setEditProfilePic(null);
+            showToast('Profile updated successfully', 'success');
 
         } catch (error: any) {
-            setEditError(error.message || 'Failed to update profile');
+            const errorMessage = error.message || 'Failed to update profile';
+
+            if (errorMessage.includes('username already taken')) {
+                setEditError('This username is already taken');
+            } else if (errorMessage.includes('email already in use')) {
+                setEditError('This email is already in use');
+            } else if (errorMessage.includes('username must be between')) {
+                setEditError('Username must be between 3-50 characters');
+            } else if (errorMessage.includes('invalid email')) {
+                setEditError('Please enter a valid email address');
+            } else if (errorMessage.includes('failed to upload profile picture')) {
+                setEditError('Failed to upload profile picture. Please try again');
+            } else {
+                setEditError(errorMessage);
+            }
         } finally {
             setEditLoading(false);
         }

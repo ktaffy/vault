@@ -110,6 +110,9 @@ type Repo interface {
 	DeactivateUser(ctx context.Context, userID int64) error
 	ReactivateUser(ctx context.Context, userID int64) error
 	DeleteUser(ctx context.Context, userID int64) error
+
+	CheckUsernameExists(ctx context.Context, username string, excludeUserID int64) (bool, error)
+	CheckEmailExists(ctx context.Context, email string, excludeUserID int64) (bool, error)
 }
 
 type Service interface {

@@ -138,6 +138,15 @@ func (s *service) UpdateProfile(c context.Context, userID int64, req *UpdateProf
 		if len(req.Username) < 3 || len(req.Username) > 50 {
 			return nil, fmt.Errorf("username must be between 3-50 characters")
 		}
+
+		exists, err := s.Repo.CheckUsernameExists(ctx, req.Username, userID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to check username availability")
+		}
+		if exists {
+			return nil, fmt.Errorf("username already taken")
+		}
+
 		updates["username"] = req.Username
 	}
 
@@ -146,6 +155,15 @@ func (s *service) UpdateProfile(c context.Context, userID int64, req *UpdateProf
 		if err != nil {
 			return nil, err
 		}
+
+		exists, err := s.Repo.CheckEmailExists(ctx, cleanEmail, userID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to check email availability")
+		}
+		if exists {
+			return nil, fmt.Errorf("email already in use")
+		}
+
 		updates["email"] = cleanEmail
 		updates["email_verified"] = false
 	}
