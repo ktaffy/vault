@@ -1,4 +1,3 @@
-// frontend/src/hooks/useAudioPlayback.ts
 import { useState, useEffect, useRef } from 'react';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { setupAudioMode, formatTime, calculateProgress } from '../utils/audioHelpers';
@@ -62,11 +61,9 @@ export const useAudioPlayback = (
     const [error, setError] = useState<Error | null>(null);
     const hasStarted = useRef(false);
 
-    // Setup audio mode on mount
     useEffect(() => {
         setupAudioMode();
 
-        // Cleanup on unmount - stop any playing audio
         return () => {
             try {
                 if (player) {
@@ -80,17 +77,20 @@ export const useAudioPlayback = (
         };
     }, []);
 
-    // Auto-play if enabled
+    useEffect(() => {
+        setProgress(0);
+        setIsPlaying(false);
+        hasStarted.current = false;
+    }, [audioUrl]);
+
     useEffect(() => {
         if (autoPlay && !hasStarted.current) {
-            // Cached players are already loaded, new players need to wait
             if (cachedPlayer || status.isLoaded) {
                 play();
             }
         }
     }, [autoPlay, status.isLoaded, cachedPlayer]);
 
-    // Update progress
     useEffect(() => {
         if (status.isLoaded && status.duration > 0) {
             const currentProgress = calculateProgress(status.currentTime, status.duration);
@@ -102,10 +102,8 @@ export const useAudioPlayback = (
         }
     }, [status.currentTime, status.duration, onProgress]);
 
-    // Handle playback end
     useEffect(() => {
         if (hasStarted.current && status.isLoaded && status.playing) {
-            // Check if we've reached the end time
             const hasReachedEnd = endTime
                 ? status.currentTime >= endTime
                 : status.currentTime >= status.duration - 0.1;
@@ -121,12 +119,10 @@ export const useAudioPlayback = (
         }
     }, [status.playing, status.isLoaded, status.currentTime, endTime, onEnd]);
 
-    // Sync isPlaying state with actual playback
     useEffect(() => {
         setIsPlaying(status.playing);
     }, [status.playing]);
 
-    // Cleanup when audio URL changes
     useEffect(() => {
         return () => {
             try {
@@ -148,7 +144,6 @@ export const useAudioPlayback = (
                 return;
             }
 
-            // Seek to start time if specified and we're at the beginning
             if (startTime > 0 && status.currentTime < startTime) {
                 player.seekTo(startTime);
             }

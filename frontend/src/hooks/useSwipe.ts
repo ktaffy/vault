@@ -1,7 +1,15 @@
 import { useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { swipeService } from '../services/api/swipes';
-import { selectCurrentSnippet, setCurrentIndex, selectCurrentIndex, selectSnippets } from '../store/slices/feedSlice';
+import {
+    selectCurrentSnippet,
+    selectCurrentIndex,
+    selectSnippets,
+    moveToNextSnippet,
+    fetchNextSnippet,
+    selectHasMore,
+    removeCurrentSnippet
+} from '../store/slices/feedSlice';
 import type { AppDispatch } from '../store/store';
 
 export const useSwipe = () => {
@@ -9,36 +17,35 @@ export const useSwipe = () => {
     const currentSnippet = useSelector(selectCurrentSnippet);
     const currentIndex = useSelector(selectCurrentIndex);
     const snippets = useSelector(selectSnippets);
+    const hasMore = useSelector(selectHasMore);
 
     const handleSwipe = useCallback(async (action: 'fire' | 'skip') => {
-        const snippetToSwipe = snippets[currentIndex];
-
-        if (!snippetToSwipe) {
-            console.warn('No snippet at current index:', currentIndex);
-            console.warn('Snippets array:', snippets);
+        if (!currentSnippet) {
+            console.warn('No current snippet to swipe');
             return;
         }
 
-        console.log('Swiping snippet:', snippetToSwipe);
+        console.log(`${action === 'fire' ? '🔥' : '⏭️'} Swiping:`, currentSnippet.title);
 
         try {
-            console.log('Recording swipe for snippet:', snippetToSwipe.id, 'action:', action);
-            const response = await swipeService.recordSwipe(snippetToSwipe.id, action);
-            console.log('Swipe successful:', response);
+            dispatch(moveToNextSnippet());
+
+            const response = await swipeService.recordSwipe(currentSnippet.snippet_id, action);
 
             if (action === 'fire' && response.followed_artist) {
-                console.log('🔥 Artist followed!');
+                console.log('✅ Artist followed:', currentSnippet.artist_name);
             }
 
-            if (currentIndex < snippets.length - 1) {
-                dispatch(setCurrentIndex(currentIndex + 1));
-            } else {
-                console.log('📥 No more snippets, need to fetch more');
+            const remainingSnippets = snippets.length - currentIndex - 1;
+            if (remainingSnippets <= 2 && hasMore) {
+                console.log('📥 Preloading next snippet...');
+                dispatch(fetchNextSnippet());
             }
+
         } catch (err: any) {
-            console.error('Swipe error:', err);
+            console.error('❌ Swipe error:', err);
         }
-    }, [snippets, currentIndex, dispatch]);
+    }, [currentSnippet, snippets, currentIndex, hasMore, dispatch]);
 
     const fire = useCallback(() => {
         handleSwipe('fire');
@@ -52,5 +59,6 @@ export const useSwipe = () => {
         fire,
         skip,
         currentSnippet,
+        isLoading: !currentSnippet && snippets.length === 0,
     };
 };

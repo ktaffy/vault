@@ -1,17 +1,15 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { feedService } from '../services/api/feed';
 import {
-    addSnippet,
-    setCurrentIndex,
-    setHasMore,
-    setLoading,
-    setError,
+    fetchNextSnippet,
+    preloadSnippets,
     selectSnippets,
     selectCurrentIndex,
+    selectCurrentSnippet,
     selectHasMore,
-    selectFeedLoading,
-    selectCurrentSnippet
+    selectIsLoading,
+    setCurrentIndex,
+    moveToNextSnippet,
 } from '../store/slices/feedSlice';
 import type { AppDispatch } from '../store/store';
 
@@ -21,77 +19,43 @@ export const useFeed = () => {
     const currentIndex = useSelector(selectCurrentIndex);
     const currentSnippet = useSelector(selectCurrentSnippet);
     const hasMore = useSelector(selectHasMore);
-    const loading = useSelector(selectFeedLoading);
-
-    const fetchNextSnippet = useCallback(async () => {
-        if (loading || !hasMore) return;
-
-        dispatch(setLoading(true));
-        dispatch(setError(null));
-
-        try {
-            console.log('Fetching next snippet from API...');
-            const response = await feedService.getNextSnippet();
-            console.log('API returned response:', response);
-
-            const snippet = response?.snippet;
-
-            if (snippet) {
-                const mappedSnippet = {
-                    id: snippet.snippet_id,
-                    title: snippet.title,
-                    artistId: snippet.artist_id,
-                    artistName: snippet.artist_name,
-                    audioUrl: snippet.audio_url,
-                    durationSeconds: snippet.duration_seconds,
-                    playCount: snippet.play_count,
-                    fireCount: snippet.fire_count,
-                    fireRate: snippet.fire_rate,
-                    uploadedAt: snippet.uploaded_at,
-                };
-                console.log('Mapped snippet to Redux format:', mappedSnippet);
-
-                dispatch(addSnippet(mappedSnippet));
-                console.log('Snippet added to Redux');
-            } else {
-                console.log('No more snippets available');
-                dispatch(setHasMore(false));
-            }
-        } catch (err: any) {
-            const errorMessage = err.message || 'Failed to fetch snippet';
-            dispatch(setError(errorMessage));
-            console.error('Feed fetch error:', err);
-        } finally {
-            dispatch(setLoading(false));
-        }
-    }, [dispatch, loading, hasMore]);
+    const loading = useSelector(selectIsLoading);
 
     const loadInitialFeed = useCallback(async () => {
-        try {
-            await fetchNextSnippet();
-            await fetchNextSnippet();
-            await fetchNextSnippet();
-        } catch (err) {
-            console.error('Failed to load initial feed:', err);
+        if (snippets.length === 0 && !loading) {
+            console.log('📥 Loading initial feed...');
+            dispatch(preloadSnippets(3));
         }
-    }, [fetchNextSnippet]);
+    }, [snippets.length, loading, dispatch]);
 
     const checkAndLoadMore = useCallback(() => {
-        const snippetsLength = snippets.length;
-        const remainingSnippets = snippetsLength - currentIndex;
+        const remainingSnippets = snippets.length - currentIndex;
 
         if (remainingSnippets < 3 && hasMore && !loading) {
-            fetchNextSnippet();
+            console.log('📥 Preloading more snippets... (remaining:', remainingSnippets, ')');
+            dispatch(fetchNextSnippet());
         }
-    }, [snippets.length, currentIndex, hasMore, loading, fetchNextSnippet]);
+    }, [snippets.length, currentIndex, hasMore, loading, dispatch]);
 
     const nextSnippet = useCallback(() => {
-        const snippetsLength = snippets.length;
-        if (currentIndex < snippetsLength - 1) {
-            dispatch(setCurrentIndex(currentIndex + 1));
-        }
+        dispatch(moveToNextSnippet());
         checkAndLoadMore();
-    }, [currentIndex, snippets.length, dispatch, checkAndLoadMore]);
+    }, [dispatch, checkAndLoadMore]);
+
+    const goToIndex = useCallback((index: number) => {
+        if (index >= 0 && index < snippets.length) {
+            dispatch(setCurrentIndex(index));
+            checkAndLoadMore();
+        }
+    }, [snippets.length, dispatch, checkAndLoadMore]);
+
+    useEffect(() => {
+        loadInitialFeed();
+    }, [loadInitialFeed]);
+
+    useEffect(() => {
+        checkAndLoadMore();
+    }, [currentIndex]);
 
     return {
         snippets,
@@ -99,8 +63,9 @@ export const useFeed = () => {
         currentIndex,
         hasMore,
         loading,
-        fetchNextSnippet,
         loadInitialFeed,
         nextSnippet,
+        goToIndex,
+        totalSnippets: snippets.length,
     };
 };

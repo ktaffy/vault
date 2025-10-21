@@ -1,32 +1,112 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { useAuth } from '../../hooks/useAuth';
-import { useScreenSetup } from '../../hooks/useScreenSetup';
-import { Button } from '../../components/common';
+import React, { useEffect, useRef } from 'react';
+import { View, StyleSheet, Animated, Dimensions } from 'react-native';
+import { useTheme } from '../../hooks/useTheme';
+import { useFeed } from '../../hooks/useFeed';
+import { useFeedAudio } from '../../hooks/useFeedAudio';
+import { useSwipe } from '../../hooks/useSwipe';
+import { SnippetCard } from '../../components/feed/SnippetCard';
+import { SwipeActions } from '../../components/feed/SwipeActions';
+import { LoadingSpinner } from '../../components/common';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export const FeedScreen = () => {
-    const { user, logout } = useAuth();
-    const { theme, insets } = useScreenSetup();
+    const { theme } = useTheme();
+    const { currentSnippet, loading, currentIndex } = useFeed();
+    const { fire, skip } = useSwipe();
+    const { isPlaying, progress, duration, seekTo, togglePlayPause, currentTime } = useFeedAudio();
+
+    const slideAnim = useRef(new Animated.Value(0)).current;
+    const previousIndex = useRef(currentIndex);
+
+    useEffect(() => {
+        if (previousIndex.current !== currentIndex && currentSnippet) {
+            Animated.sequence([
+                Animated.timing(slideAnim, {
+                    toValue: -SCREEN_WIDTH,
+                    duration: 250,
+                    useNativeDriver: true,
+                }),
+                Animated.timing(slideAnim, {
+                    toValue: SCREEN_WIDTH,
+                    duration: 0,
+                    useNativeDriver: true,
+                }),
+                Animated.timing(slideAnim, {
+                    toValue: 0,
+                    duration: 250,
+                    useNativeDriver: true,
+                }),
+            ]).start();
+
+            previousIndex.current = currentIndex;
+        }
+    }, [currentIndex, currentSnippet]);
+
+    const handleSeek = (seekProgress: number) => {
+        const seekTime = seekProgress * duration;
+        seekTo(seekTime);
+    };
+
+    const handleTogglePlayPause = () => {
+        if (currentTime >= duration - 0.5) {
+            seekTo(0);
+            setTimeout(() => {
+                if (!isPlaying) {
+                    togglePlayPause();
+                }
+            }, 100);
+        } else {
+            togglePlayPause();
+        }
+    };
+
+    if (loading && !currentSnippet) {
+        return (
+            <View style={styles.container}>
+                <LoadingSpinner
+                    text="Loading feed..."
+                    fullScreen
+                />
+            </View>
+        );
+    }
+
+    if (!currentSnippet) {
+        return (
+            <View style={styles.container}>
+                <LoadingSpinner
+                    text="No more snippets available"
+                    fullScreen
+                />
+            </View>
+        );
+    }
 
     return (
-        <View style={[styles.container, { backgroundColor: theme.colors.background, paddingTop: insets.top }]}>
-            <View style={styles.content}>
-                <Text style={[styles.title, { color: theme.colors.text }]}>
-                    Welcome to Feed! 🎵
-                </Text>
-                <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>
-                    Logged in as: {user?.username}
-                </Text>
+        <View style={[styles.container, { backgroundColor: '#000000' }]}>
+            <Animated.View
+                style={[
+                    styles.animatedContainer,
+                    {
+                        transform: [{ translateX: slideAnim }],
+                    },
+                ]}
+            >
+                <SnippetCard
+                    snippet={currentSnippet}
+                    isPlaying={isPlaying}
+                    progress={progress}
+                    onSeek={handleSeek}
+                    onTogglePlayPause={handleTogglePlayPause}
+                />
+            </Animated.View>
 
-                <View style={styles.buttonContainer}>
-                    <Button
-                        title="Logout"
-                        onPress={logout}
-                        variant="outline"
-                        size="medium"
-                    />
-                </View>
-            </View>
+            <SwipeActions
+                onFire={fire}
+                onSkip={skip}
+                disabled={loading}
+            />
         </View>
     );
 };
@@ -34,24 +114,9 @@ export const FeedScreen = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
+        overflow: 'hidden',
     },
-    content: {
+    animatedContainer: {
         flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        paddingHorizontal: 24,
-    },
-    title: {
-        fontSize: 32,
-        fontWeight: '700',
-        marginBottom: 12,
-    },
-    subtitle: {
-        fontSize: 16,
-        marginBottom: 40,
-    },
-    buttonContainer: {
-        width: '100%',
-        maxWidth: 300,
     },
 });
