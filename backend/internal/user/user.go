@@ -3,13 +3,16 @@ package user
 import "context"
 
 type User struct {
-	ID         int64   `json:"id" db:"id"`
-	Username   string  `json:"username" db:"username"`
-	Email      string  `json:"email" db:"email"`
-	Password   string  `json:"password" db:"password"`
-	IsArtist   bool    `json:"is_artist" db:"is_artist"`
-	IsActive   bool    `string:"is_active" db:"is_active"`
-	ProfilePic *string `json:"profile_pic" db:"pfp_url"`
+	ID            int64   `json:"id" db:"id"`
+	Username      string  `json:"username" db:"username"`
+	Email         string  `json:"email" db:"email"`
+	Password      string  `json:"password" db:"password"`
+	IsArtist      bool    `json:"is_artist" db:"is_artist"`
+	IsActive      bool    `string:"is_active" db:"is_active"`
+	ProfilePic    *string `json:"profile_pic" db:"pfp_url"`
+	SpotifyURL    *string `json:"spotify_url" db:"spotify_url"`
+	SoundCloudURL *string `json:"soundcloud_url" db:"soundcloud_url"`
+	LinktreeURL   *string `json:"linktree_url" db:"linktree_url"`
 }
 
 type CreateUserReq struct {
@@ -36,15 +39,21 @@ type LoginUserRes struct {
 }
 
 type UserInfo struct {
-	ID         string  `json:"id"`
-	Username   string  `json:"username"`
-	Email      string  `json:"email"`
-	ProfilePic *string `json:"profile_pic,omitempty"`
+	ID            string  `json:"id"`
+	Username      string  `json:"username"`
+	Email         string  `json:"email"`
+	ProfilePic    *string `json:"profile_pic,omitempty"`
+	SpotifyURL    *string `json:"spotify_url,omitempty"`
+	SoundCloudURL *string `json:"soundcloud_url,omitempty"`
+	LinktreeURL   *string `json:"linktree_url,omitempty"`
 }
 
 type UpdateProfileReq struct {
-	Username string `json:"username,omitempty" db:"username,omitempty"`
-	Email    string `json:"email,omitempty" db:"email,omitempty"`
+	Username      string `json:"username,omitempty" db:"username,omitempty"`
+	Email         string `json:"email,omitempty" db:"email,omitempty"`
+	SpotifyURL    string `json:"spotify_url,omitempty"`
+	SoundCloudURL string `json:"soundcloud_url,omitempty"`
+	LinktreeURL   string `json:"linktree_url,omitempty"`
 }
 
 type UpdateProfileRes struct {

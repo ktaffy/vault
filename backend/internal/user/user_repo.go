@@ -41,8 +41,8 @@ func (r *repo) CreateUser(ctx context.Context, user *User) (*User, error) {
 
 func (r *repo) GetUserByID(ctx context.Context, userID int64) (*User, error) {
 	u := User{}
-	query := "SELECT id, email, username, password, is_artist, is_active, pfp_url FROM users WHERE id = $1"
-	err := r.db.QueryRowContext(ctx, query, userID).Scan(&u.ID, &u.Email, &u.Username, &u.Password, &u.IsArtist, &u.IsActive, &u.ProfilePic)
+	query := "SELECT id, email, username, password, is_artist, is_active, pfp_url, spotify_url, soundcloud_url, linktree_url FROM users WHERE id = $1"
+	err := r.db.QueryRowContext(ctx, query, userID).Scan(&u.ID, &u.Email, &u.Username, &u.Password, &u.IsArtist, &u.IsActive, &u.ProfilePic, &u.SpotifyURL, &u.SoundCloudURL, &u.LinktreeURL)
 	if err != nil {
 		return nil, err
 	}
@@ -61,8 +61,8 @@ func (r *repo) GetUserByEmail(ctx context.Context, email string) (*User, error) 
 
 func (r *repo) GetUserByEmailOrUsername(ctx context.Context, identifier string) (*User, error) {
 	u := User{}
-	query := "SELECT id, email, username, password, is_artist, pfp_url FROM users WHERE (email = $1 OR username = $1) AND is_active = TRUE"
-	err := r.db.QueryRowContext(ctx, query, identifier).Scan(&u.ID, &u.Email, &u.Username, &u.Password, &u.IsArtist, &u.ProfilePic)
+	query := "SELECT id, email, username, password, is_artist, pfp_url, spotify_url, soundcloud_url, linktree_url FROM users WHERE (email = $1 OR username = $1) AND is_active = TRUE"
+	err := r.db.QueryRowContext(ctx, query, identifier).Scan(&u.ID, &u.Email, &u.Username, &u.Password, &u.IsArtist, &u.ProfilePic, &u.SpotifyURL, &u.SoundCloudURL, &u.LinktreeURL)
 	if err != nil {
 		return nil, err
 	}
@@ -104,10 +104,10 @@ func (r *repo) UpdateUser(ctx context.Context, userID int64, updates map[string]
 		args = append(args, value)
 		argIndex++
 	}
-	query := fmt.Sprintf("UPDATE users SET %s WHERE id = $%d RETURNING id, username, email, pfp_url", strings.Join(setParts, ", "), argIndex)
+	query := fmt.Sprintf("UPDATE users SET %s WHERE id = $%d RETURNING id, username, email, pfp_url, spotify_url, soundcloud_url, linktree_url", strings.Join(setParts, ", "), argIndex)
 	args = append(args, userID)
 	u := &User{}
-	err := r.db.QueryRowContext(ctx, query, args...).Scan(&u.ID, &u.Username, &u.Email, &u.ProfilePic)
+	err := r.db.QueryRowContext(ctx, query, args...).Scan(&u.ID, &u.Username, &u.Email, &u.ProfilePic, &u.SpotifyURL, &u.SoundCloudURL, &u.LinktreeURL)
 	if err != nil {
 		return nil, err
 	}

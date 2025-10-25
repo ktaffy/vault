@@ -106,10 +106,13 @@ func (s *service) Login(c context.Context, req *LoginUserReq) (*LoginUserRes, st
 		AccessToken: accessToken,
 		ExpiresIn:   int(s.config.AccessTokenDuration.Seconds()),
 		User: UserInfo{
-			ID:         userIDStr,
-			Username:   u.Username,
-			Email:      u.Email,
-			ProfilePic: u.ProfilePic,
+			ID:            userIDStr,
+			Username:      u.Username,
+			Email:         u.Email,
+			ProfilePic:    u.ProfilePic,
+			SpotifyURL:    u.SpotifyURL,
+			SoundCloudURL: u.SoundCloudURL,
+			LinktreeURL:   u.LinktreeURL,
 		},
 	}
 
@@ -176,6 +179,18 @@ func (s *service) UpdateProfile(c context.Context, userID int64, req *UpdateProf
 		updates["pfp_url"] = profilePicURL
 	}
 
+	if req.SpotifyURL != "" {
+		updates["spotify_url"] = req.SpotifyURL
+	}
+
+	if req.SoundCloudURL != "" {
+		updates["soundcloud_url"] = req.SoundCloudURL
+	}
+
+	if req.LinktreeURL != "" {
+		updates["linktree_url"] = req.LinktreeURL
+	}
+
 	if len(updates) == 0 {
 		return nil, fmt.Errorf("no fields to update")
 	}
@@ -188,10 +203,13 @@ func (s *service) UpdateProfile(c context.Context, userID int64, req *UpdateProf
 	res := &UpdateProfileRes{
 		Message: "Profile updated successfully",
 		User: UserInfo{
-			ID:         strconv.Itoa(int(updatedUser.ID)),
-			Username:   updatedUser.Username,
-			Email:      updatedUser.Email,
-			ProfilePic: updatedUser.ProfilePic,
+			ID:            strconv.Itoa(int(updatedUser.ID)),
+			Username:      updatedUser.Username,
+			Email:         updatedUser.Email,
+			ProfilePic:    updatedUser.ProfilePic,
+			SpotifyURL:    updatedUser.SpotifyURL,
+			SoundCloudURL: updatedUser.SoundCloudURL,
+			LinktreeURL:   updatedUser.LinktreeURL,
 		},
 	}
 
@@ -234,10 +252,13 @@ func (s *service) RefreshAccess(c context.Context, refreshToken string) (*LoginU
 		AccessToken: accessToken,
 		ExpiresIn:   int(s.config.AccessTokenDuration.Seconds()),
 		User: UserInfo{
-			ID:         userIDStr,
-			Username:   user.Username,
-			Email:      user.Email,
-			ProfilePic: user.ProfilePic,
+			ID:            userIDStr,
+			Username:      user.Username,
+			Email:         user.Email,
+			ProfilePic:    user.ProfilePic,
+			SpotifyURL:    user.SpotifyURL,
+			SoundCloudURL: user.SoundCloudURL,
+			LinktreeURL:   user.LinktreeURL,
 		},
 	}
 	return resp, newRefreshToken, nil
