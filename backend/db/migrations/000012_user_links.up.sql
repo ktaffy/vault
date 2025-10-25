@@ -1,0 +1,4 @@
+ALTER TABLE users 
+ADD COLUMN spotify_url VARCHAR(500),
+ADD COLUMN soundcloud_url VARCHAR(500),
+ADD COLUMN linktree_url VARCHAR(500);
