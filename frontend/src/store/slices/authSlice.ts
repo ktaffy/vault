@@ -8,6 +8,9 @@ interface User {
     isArtist?: boolean;
     emailVerified?: boolean;
     profile_pic?: string;
+    spotify_url?: string;
+    soundcloud_url?: string;
+    linktree_url?: string;
 }
 
 interface AuthState {

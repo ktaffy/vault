@@ -25,6 +25,9 @@ export interface LoginResponse {
         username: string;
         email: string;
         profile_pic?: string;
+        spotify_url?: string;
+        soundcloud_url?: string;
+        linktree_url?: string;
     };
 }
 
@@ -32,6 +35,9 @@ export interface UpdateProfileRequest {
     username?: string;
     email?: string;
     profile_pic?: any;
+    spotify_url?: string;
+    soundcloud_url?: string;
+    linktree_url?: string;
 }
 
 export interface UpdateProfileResponse {
@@ -41,6 +47,9 @@ export interface UpdateProfileResponse {
         username: string;
         email: string;
         profile_pic?: string;
+        spotify_url?: string;
+        soundcloud_url?: string;
+        linktree_url?: string;
     };
 }
 
@@ -87,6 +96,18 @@ export const authService = {
 
         if (data.profile_pic) {
             formData.append('profile_pic', data.profile_pic);
+        }
+
+        if (data.spotify_url !== undefined) {
+            formData.append('spotify_url', data.spotify_url);
+        }
+
+        if (data.soundcloud_url !== undefined) {
+            formData.append('soundcloud_url', data.soundcloud_url);
+        }
+
+        if (data.linktree_url !== undefined) {
+            formData.append('linktree_url', data.linktree_url);
         }
 
         return apiClient.put<UpdateProfileResponse>('/update-profile', formData, true);

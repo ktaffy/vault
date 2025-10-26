@@ -35,6 +35,10 @@ export const ProfileScreen = () => {
     const [editError, setEditError] = useState('');
     const [editProfilePic, setEditProfilePic] = useState<string | null>(null);
     const [refreshing, setRefreshing] = useState(false);
+    const [showLinksModal, setShowLinksModal] = useState(false);
+    const [editSpotifyURL, setEditSpotifyURL] = useState(user?.spotify_url || '');
+    const [editSoundCloudURL, setEditSoundCloudURL] = useState(user?.soundcloud_url || '');
+    const [editLinktreeURL, setEditLinktreeURL] = useState(user?.linktree_url || '');
     const dispatch = useDispatch<AppDispatch>();
 
     const onRefresh = async () => {
@@ -119,6 +123,9 @@ export const ProfileScreen = () => {
             const updateData: any = {
                 username: editUsername !== user.username ? editUsername : undefined,
                 email: editEmail !== user.email ? editEmail : undefined,
+                spotify_url: editSpotifyURL,
+                soundcloud_url: editSoundCloudURL,
+                linktree_url: editLinktreeURL,
             };
 
             if (editProfilePic) {
@@ -139,6 +146,9 @@ export const ProfileScreen = () => {
                 username: response.user.username,
                 email: response.user.email,
                 profile_pic: response.user.profile_pic,
+                spotify_url: response.user.spotify_url,
+                soundcloud_url: response.user.soundcloud_url,
+                linktree_url: response.user.linktree_url,
             }));
 
             setShowEditModal(false);
@@ -265,6 +275,24 @@ export const ProfileScreen = () => {
                     >
                         <Text style={styles.editButtonText}>Edit Profile</Text>
                     </Pressable>
+
+                    <Pressable
+                        style={[styles.editLinksButton, {
+                            borderColor: theme.colors.border,
+                        }]}
+                        onPress={() => {
+                            setEditSpotifyURL(user.spotify_url || '');
+                            setEditSoundCloudURL(user.soundcloud_url || '');
+                            setEditLinktreeURL(user.linktree_url || '');
+                            setEditError('');
+                            setShowLinksModal(true);
+                        }}
+                    >
+                        <Ionicons name="link-outline" size={18} color={theme.colors.primary} />
+                        <Text style={[styles.editLinksButtonText, { color: theme.colors.text }]}>
+                            Edit Links
+                        </Text>
+                    </Pressable>
                 </View>
 
                 {/* Divider */}
@@ -377,6 +405,7 @@ export const ProfileScreen = () => {
                     </Text>
                 </Pressable>
             </ScrollView>
+
             {/* Edit Profile Modal */}
             <Modal
                 visible={showEditModal}
@@ -523,6 +552,160 @@ export const ProfileScreen = () => {
                                 ) : (
                                     <Text style={styles.modalButtonTextPrimary}>
                                         Save Changes
+                                    </Text>
+                                )}
+                            </Pressable>
+                        </View>
+                    </View>
+                </KeyboardAvoidingView>
+            </Modal>
+
+            {/* Edit Links Modal*/}
+            <Modal
+                visible={showLinksModal}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setShowLinksModal(false)}
+            >
+                <KeyboardAvoidingView
+                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                    style={styles.modalOverlay}
+                >
+                    <Pressable
+                        style={styles.modalBackdrop}
+                        onPress={() => !editLoading && setShowLinksModal(false)}
+                    />
+
+                    <View style={[styles.linksModalContent, {
+                        backgroundColor: theme.colors.background,
+                        borderColor: theme.colors.border,
+                    }]}>
+                        {/* Header */}
+                        <View style={styles.modalHeader}>
+                            <Text style={[styles.modalTitle, { color: theme.colors.text }]}>
+                                Social Links
+                            </Text>
+                            <Pressable
+                                onPress={() => !editLoading && setShowLinksModal(false)}
+                                style={styles.modalCloseButton}
+                            >
+                                <Ionicons name="close" size={24} color={theme.colors.text} />
+                            </Pressable>
+                        </View>
+
+                        <Text style={[styles.linksModalSubtext, { color: theme.colors.textSecondary }]}>
+                            Connect your music profiles so fans can find you
+                        </Text>
+
+                        {/* Links Form */}
+                        <View style={styles.linksForm}>
+                            {/* Spotify */}
+                            <View style={[styles.linkInputCard, {
+                                backgroundColor: theme.colors.surface,
+                                borderColor: editSpotifyURL ? '#1DB954' : theme.colors.border,
+                            }]}>
+                                <View style={styles.linkInputHeader}>
+                                    <Image
+                                        source={require('../../assets/logos/spotify.png')}
+                                        style={styles.linkLogo}
+                                    />
+                                    <Text style={[styles.linkInputLabel, { color: theme.colors.text }]}>
+                                        Spotify
+                                    </Text>
+                                </View>
+                                <TextInput
+                                    value={editSpotifyURL}
+                                    onChangeText={setEditSpotifyURL}
+                                    style={[styles.linkInput, { color: theme.colors.text }]}
+                                    placeholder="open.spotify.com/artist/..."
+                                    placeholderTextColor={theme.colors.textSecondary}
+                                    autoCapitalize="none"
+                                    autoCorrect={false}
+                                    editable={!editLoading}
+                                />
+                            </View>
+
+                            {/* SoundCloud */}
+                            <View style={[styles.linkInputCard, {
+                                backgroundColor: theme.colors.surface,
+                                borderColor: editSoundCloudURL ? '#FF5500' : theme.colors.border,
+                            }]}>
+                                <View style={styles.linkInputHeader}>
+                                    <Image
+                                        source={require('../../assets/logos/soundcloud.png')}
+                                        style={styles.linkLogo}
+                                    />
+                                    <Text style={[styles.linkInputLabel, { color: theme.colors.text }]}>
+                                        SoundCloud
+                                    </Text>
+                                </View>
+                                <TextInput
+                                    value={editSoundCloudURL}
+                                    onChangeText={setEditSoundCloudURL}
+                                    style={[styles.linkInput, { color: theme.colors.text }]}
+                                    placeholder="soundcloud.com/username"
+                                    placeholderTextColor={theme.colors.textSecondary}
+                                    autoCapitalize="none"
+                                    autoCorrect={false}
+                                    editable={!editLoading}
+                                />
+                            </View>
+
+                            {/* Linktree */}
+                            <View style={[styles.linkInputCard, {
+                                backgroundColor: theme.colors.surface,
+                                borderColor: editLinktreeURL ? '#39E09B' : theme.colors.border,
+                            }]}>
+                                <View style={styles.linkInputHeader}>
+                                    <Image
+                                        source={require('../../assets/logos/linktree.png')}
+                                        style={styles.linkLogo}
+                                    />
+                                    <Text style={[styles.linkInputLabel, { color: theme.colors.text }]}>
+                                        Linktree
+                                    </Text>
+                                </View>
+                                <TextInput
+                                    value={editLinktreeURL}
+                                    onChangeText={setEditLinktreeURL}
+                                    style={[styles.linkInput, { color: theme.colors.text }]}
+                                    placeholder="linktr.ee/username"
+                                    placeholderTextColor={theme.colors.textSecondary}
+                                    autoCapitalize="none"
+                                    autoCorrect={false}
+                                    editable={!editLoading}
+                                />
+                            </View>
+                        </View>
+
+                        {/* Action Buttons */}
+                        <View style={styles.modalActions}>
+                            <Pressable
+                                style={[styles.modalButton, styles.modalButtonSecondary, {
+                                    backgroundColor: theme.colors.surface,
+                                    borderColor: theme.colors.border,
+                                }]}
+                                onPress={() => setShowLinksModal(false)}
+                                disabled={editLoading}
+                            >
+                                <Text style={[styles.modalButtonText, { color: theme.colors.text }]}>
+                                    Cancel
+                                </Text>
+                            </Pressable>
+
+                            <Pressable
+                                style={[styles.modalButton, styles.modalButtonPrimary, {
+                                    backgroundColor: theme.colors.primary,
+                                    opacity: editLoading ? 0.6 : 1,
+                                }]}
+                                onPress={handleUpdateProfile}
+                                disabled={editLoading}
+                            >
+                                {editLoading ? (
+                                    <ActivityIndicator size="small" color="#FFFFFF" />
+                                ) : (
+                                    <Text style={styles.modalButtonTextPrimary}>
+                                        Save Links
                                     </Text>
                                 )}
                             </Pressable>
@@ -814,5 +997,62 @@ const styles = StyleSheet.create({
         width: '100%',
         height: '100%',
         borderRadius: 48,
+    },
+    editLinksButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 6,
+        paddingVertical: 8,
+        marginTop: 8,
+    },
+    editLinksButtonText: {
+        fontSize: 14,
+        fontWeight: '600',
+    },
+    linksModalContent: {
+        width: '100%',
+        maxWidth: 400,
+        borderRadius: 20,
+        borderWidth: 1,
+        padding: 24,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.3,
+        shadowRadius: 20,
+        elevation: 10,
+    },
+    linksModalSubtext: {
+        fontSize: 14,
+        lineHeight: 20,
+        marginBottom: 24,
+    },
+    linksForm: {
+        gap: 16,
+        marginBottom: 24,
+    },
+    linkInputCard: {
+        padding: 16,
+        borderRadius: 12,
+        borderWidth: 1.5,
+        gap: 12,
+    },
+    linkInputHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+    },
+    linkLogo: {
+        width: 28,
+        height: 28,
+        borderRadius: 6,
+    },
+    linkInputLabel: {
+        fontSize: 16,
+        fontWeight: '600',
+    },
+    linkInput: {
+        fontSize: 14,
+        paddingVertical: 4,
     },
 });
