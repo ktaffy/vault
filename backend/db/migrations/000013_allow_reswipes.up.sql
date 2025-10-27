@@ -42,5 +42,5 @@ AFTER INSERT OR UPDATE ON swipes
 FOR EACH ROW EXECUTE FUNCTION update_snippet_stats_v2();
 
 CREATE TRIGGER trigger_auto_follow_on_fire_v2
-AFTER INSERT OR UPDATE ON swipes
+AFTER INSERT ON swipes
 FOR EACH ROW EXECUTE FUNCTION auto_follow_on_fire();

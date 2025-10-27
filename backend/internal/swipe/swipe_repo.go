@@ -34,7 +34,14 @@ func (r *repo) HasUserSwipedSnippet(ctx context.Context, userID, snippetID int64
 }
 
 func (r *repo) CreateSwipe(ctx context.Context, swipe *Swipe) error {
-	query := `INSERT INTO swipes (user_id, snippet_id, action, swiped_at) VALUES ($1, $2, $3, $4)`
+	query := `
+        INSERT INTO swipes (user_id, snippet_id, action, swiped_at) 
+        VALUES ($1, $2, $3, $4)
+        ON CONFLICT (user_id, snippet_id) 
+        DO UPDATE SET 
+            action = EXCLUDED.action,
+            swiped_at = EXCLUDED.swiped_at`
+
 	_, err := r.db.ExecContext(ctx, query, swipe.UserID, swipe.SnippetID, swipe.Action, swipe.SwipedAt)
 	return err
 }

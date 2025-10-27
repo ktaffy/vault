@@ -2,7 +2,6 @@ package swipe
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/ktaffy/vault/backend/config"
@@ -37,14 +36,6 @@ func (s *service) RecordSwipe(c context.Context, userID int64, req *SwipeReq) (*
 		return nil, err
 	}
 
-	hasSwiper, err := s.swipeRepo.HasUserSwipedSnippet(ctx, userID, req.SnippetID)
-	if err != nil {
-		return nil, err
-	}
-	if hasSwiper {
-		return nil, fmt.Errorf("already swiped this snippet")
-	}
-
 	swipe := &Swipe{
 		UserID:    userID,
 		SnippetID: req.SnippetID,
@@ -60,8 +51,6 @@ func (s *service) RecordSwipe(c context.Context, userID int64, req *SwipeReq) (*
 	res := &SwipeRes{
 		Success: true,
 	}
-
-	// db trigger handles updates and follows
 
 	if req.Action == "fire" {
 		res.FollowedArtist = true
