@@ -15,6 +15,18 @@ type User struct {
 	LinktreeURL   *string `json:"linktree_url" db:"linktree_url"`
 }
 
+type PublicArtistProfile struct {
+	ID             int64   `json:"id"`
+	Username       string  `json:"username"`
+	ProfilePic     *string `json:"profile_pic,omitempty"`
+	SpotifyURL     *string `json:"spotify_url,omitempty"`
+	SoundCloudURL  *string `json:"soundcloud_url,omitempty"`
+	LinktreeURL    *string `json:"linktree_url,omitempty"`
+	IsArtist       bool    `json:"is_artist"`
+	TotalFollowers int     `json:"total_followers"`
+	SnippetCount   int     `json:"snippet_count"`
+}
+
 type CreateUserReq struct {
 	Username string `json:"username" db:"username"`
 	Email    string `json:"email" db:"email"`
@@ -100,6 +112,7 @@ type Repo interface {
 	GetUserByEmail(ctx context.Context, email string) (*User, error)
 	GetInactiveUserByID(ctx context.Context, userID int64) (*User, error)
 	GetInactiveUserByEmailOrUsername(ctx context.Context, identifier string) (*User, error)
+	GetPublicArtistProfile(ctx context.Context, artistID int64) (*PublicArtistProfile, error)
 
 	StoreRefreshToken(ctx context.Context, userID int64, tokenHash string) error
 	ValidateRefreshToken(ctx context.Context, tokenHash string) (int64, error)
@@ -139,4 +152,5 @@ type Service interface {
 	DeactivateAccount(c context.Context, userID int64, password string) error
 	DeleteAccount(c context.Context, userID int64, password string) error
 	ReactivateAccount(c context.Context, email, password string) (*LoginUserRes, string, error)
+	GetPublicArtist(ctx context.Context, artistID int64) (*PublicArtistProfile, error)
 }

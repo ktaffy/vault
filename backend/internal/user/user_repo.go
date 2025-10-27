@@ -91,6 +91,55 @@ func (r *repo) GetInactiveUserByEmailOrUsername(ctx context.Context, identifier 
 	return &u, nil
 }
 
+func (r *repo) GetPublicArtistProfile(ctx context.Context, artistID int64) (*PublicArtistProfile, error) {
+	profile := &PublicArtistProfile{}
+
+	query := `
+		SELECT 
+			u.id, 
+			u.username, 
+			u.pfp_url, 
+			u.spotify_url, 
+			u.soundcloud_url, 
+			u.linktree_url,
+			u.is_artist,
+			COALESCE(follower_count.count, 0) as total_followers,
+			COALESCE(snippet_count.count, 0) as snippet_count
+		FROM users u
+		LEFT JOIN (
+			SELECT artist_id, COUNT(*) as count 
+			FROM follows 
+			WHERE artist_id = $1
+			GROUP BY artist_id
+		) follower_count ON u.id = follower_count.artist_id
+		LEFT JOIN (
+			SELECT artist_id, COUNT(*) as count 
+			FROM snippets 
+			WHERE artist_id = $1 AND is_active = TRUE
+			GROUP BY artist_id
+		) snippet_count ON u.id = snippet_count.artist_id
+		WHERE u.id = $1 AND u.is_active = TRUE
+	`
+
+	err := r.db.QueryRowContext(ctx, query, artistID).Scan(
+		&profile.ID,
+		&profile.Username,
+		&profile.ProfilePic,
+		&profile.SpotifyURL,
+		&profile.SoundCloudURL,
+		&profile.LinktreeURL,
+		&profile.IsArtist,
+		&profile.TotalFollowers,
+		&profile.SnippetCount,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return profile, nil
+}
+
 // Update User functions
 func (r *repo) UpdateUser(ctx context.Context, userID int64, updates map[string]interface{}) (*User, error) {
 	if len(updates) == 0 {

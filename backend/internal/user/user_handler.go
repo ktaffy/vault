@@ -3,6 +3,7 @@ package user
 import (
 	"io"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/ktaffy/vault/backend/config"
@@ -244,4 +245,21 @@ func (h *Handler) ReactivateAccount(c *gin.Context) {
 	maxAge := int(h.config.RefreshTokenDuration.Seconds())
 	c.SetCookie("refresh_token", refreshToken, maxAge, "/", h.config.CookieDomain, h.config.CookieSecure, true)
 	c.JSON(http.StatusOK, resp)
+}
+
+func (h *Handler) GetPublicArtist(c *gin.Context) {
+	artistIDStr := c.Param("id")
+	artistID, err := strconv.ParseInt(artistIDStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid artist ID"})
+		return
+	}
+
+	profile, err := h.Service.GetPublicArtist(c.Request.Context(), artistID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "artist not found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, profile)
 }

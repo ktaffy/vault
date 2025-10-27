@@ -455,6 +455,15 @@ func (s *service) ReactivateAccount(c context.Context, email, password string) (
 	return res, refreshToken, nil
 }
 
+func (s *service) GetPublicArtist(ctx context.Context, artistID int64) (*PublicArtistProfile, error) {
+	profile, err := s.Repo.GetPublicArtistProfile(ctx, artistID)
+	if err != nil {
+		return nil, err
+	}
+
+	return profile, nil
+}
+
 // Helper methods (doesnt fit in util package dont want circular dependency)
 func (s *service) generateAccessToken(userID, username string) (string, error) {
 	claims := util.JWTClaims{

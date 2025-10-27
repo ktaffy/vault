@@ -40,7 +40,7 @@ func (r *repo) GetAvailableSnippets(ctx context.Context, userID int64) ([]*FeedI
 			SELECT snippet_id 
 			FROM swipes 
 			WHERE user_id = $1 
-				AND swiped_at > NOW() - INTERVAL '30 days'
+				AND swiped_at > NOW() - INTERVAL '5 minutes'
 		)`
 
 	rows, err := r.db.QueryContext(ctx, query, userID)

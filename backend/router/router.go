@@ -24,6 +24,7 @@ func InitRouter(userHandler *user.Handler, snippetHandler *snippet.Handler, swip
 	r.POST("/forgot-password", userHandler.ForgotPassword)
 	r.POST("/reset-password", userHandler.ResetPassword)
 	r.POST("/reactivate-account", userHandler.ReactivateAccount)
+	r.GET("/artist/:id", userHandler.GetPublicArtist)
 	// Protected
 	r.PUT("/update-profile", middleware.JWTAuth(), userHandler.UpdateProfile)
 	r.PUT("/toggle-artist", middleware.JWTAuth(), userHandler.ToggleArtist)
@@ -34,6 +35,7 @@ func InitRouter(userHandler *user.Handler, snippetHandler *snippet.Handler, swip
 	// SNIPPET
 	// Public
 	r.GET("/snippet/:id", snippetHandler.GetSnippetByID)
+	r.GET("/artist/:id/snippets", snippetHandler.GetPublicArtistSnippets)
 	// Protected
 	r.POST("/snippet/upload", middleware.JWTAuth(), snippetHandler.UploadSnippet)
 	r.PUT("/snippet/update", middleware.JWTAuth(), snippetHandler.UpdateSnippet)

@@ -267,3 +267,20 @@ func (h *Handler) GetSnippetByID(c *gin.Context) {
 
 	c.JSON(http.StatusOK, snippet)
 }
+
+func (h *Handler) GetPublicArtistSnippets(c *gin.Context) {
+	artistIDStr := c.Param("id")
+	artistID, err := strconv.ParseInt(artistIDStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid artist ID"})
+		return
+	}
+
+	snippets, err := h.Service.GetAllSnippets(c.Request.Context(), artistID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"snippets": snippets})
+}
