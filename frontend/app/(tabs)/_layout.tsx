@@ -53,18 +53,24 @@ export default function TabsLayout() {
                     ),
                 }}
             />
-                <Tabs.Screen
-                    name="artist"
-                    options={{
-                        tabBarIcon: ({ focused, color }) => (
-                            <Ionicons
-                                name={focused ? 'musical-notes' : 'musical-notes-outline'}
-                                size={22}
-                                color={color}
-                            />
-                        ),
-                    }}
-                />
+            <Tabs.Screen
+                name="artist"
+                options={{
+                    tabBarIcon: ({ focused, color }) => (
+                        <Ionicons
+                            name={focused ? 'musical-notes' : 'musical-notes-outline'}
+                            size={22}
+                            color={color}
+                        />
+                    ),
+                }}
+            />
+            <Tabs.Screen
+                name="artist-profile/[id]"
+                options={{
+                    href: null,
+                }}
+            />
             
         </Tabs>
     );

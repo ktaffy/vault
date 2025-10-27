@@ -70,4 +70,8 @@ export const snippetService = {
     getArtistStats: async (): Promise<ArtistStats> => {
         return apiClient.get<ArtistStats>('/artist/stats', true);
     },
+
+    getPublicArtistSnippets: async (artistId: number): Promise<{ snippets: Snippet[] }> => {
+        return apiClient.get<{ snippets: Snippet[] }>(`/artist/${artistId}/snippets`);
+    },
 };

@@ -31,6 +31,18 @@ export interface LoginResponse {
     };
 }
 
+export interface PublicArtistProfile {
+    id: number;
+    username: string;
+    profile_pic?: string | null;
+    spotify_url?: string | null;
+    soundcloud_url?: string | null;
+    linktree_url?: string | null;
+    is_artist: boolean;
+    total_followers: number;
+    snippet_count: number;
+}
+
 export interface UpdateProfileRequest {
     username?: string;
     email?: string;
@@ -127,5 +139,9 @@ export const authService = {
 
     resetPassword: async (data: ResetPasswordRequest): Promise<{ message: string }> => {
         return apiClient.post<{ message: string }>('/reset-password', data);
+    },
+
+    getPublicArtist: async (artistId: number): Promise<PublicArtistProfile> => {
+        return apiClient.get<PublicArtistProfile>(`/artist/${artistId}`);
     },
 };

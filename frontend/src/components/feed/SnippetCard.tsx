@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
 import type { FeedSnippet } from '../../types/feed';
+import { useRouter } from 'expo-router';
 
 interface SnippetCardProps {
     snippet: FeedSnippet;
@@ -61,6 +62,7 @@ export const SnippetCard: React.FC<SnippetCardProps> = ({
     onTogglePlayPause,
 }) => {
     const { theme } = useTheme();
+    const router = useRouter();
     const animatedProgress = useRef(new Animated.Value(progress)).current;
     const previousSnippetId = useRef(snippet.snippet_id);
 
@@ -188,7 +190,10 @@ export const SnippetCard: React.FC<SnippetCardProps> = ({
                             {snippet.title}
                         </Text>
 
-                        <View style={styles.artistRow}>
+                        <Pressable
+                            style={styles.artistRow}
+                            onPress={() => router.push(`/(tabs)/artist-profile/${snippet.artist_id}`)}
+                        >
                             <View style={[styles.artistAvatar, {
                                 backgroundColor: theme.colors.primary
                             }]}>
@@ -199,7 +204,7 @@ export const SnippetCard: React.FC<SnippetCardProps> = ({
                             <Text style={styles.artistName} numberOfLines={1}>
                                 {snippet.artist_name}
                             </Text>
-                        </View>
+                        </Pressable>
                     </View>
                 </View>
             </View>

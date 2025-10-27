@@ -12,6 +12,7 @@ import {
     RefreshControl
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { validateEmail } from '../../utils/validation';
 import { useScreenSetup } from '../../hooks/useScreenSetup';
@@ -25,6 +26,7 @@ import type { Snippet } from '../../services/api/snippets';
 
 export const ProfileScreen = () => {
     const { insets, theme, toggleTheme, showToast } = useScreenSetup();
+    const router = useRouter();
     const { user, isAuthenticated, logout } = useAuth();
     const [likedSnippets, setLikedSnippets] = useState<Snippet[]>([]);
     const [loadingSnippets, setLoadingSnippets] = useState(false);
@@ -351,8 +353,7 @@ export const ProfileScreen = () => {
                                         borderColor: theme.colors.border,
                                     }]}
                                     onPress={() => {
-                                        // TODO: Navigate to snippet detail or play it
-                                        console.log('Play snippet:', snippet.id);
+                                        router.push(`/(tabs)/artist-profile/${snippet.artist_id}`);
                                     }}
                                 >
                                     {/* Cover Art or Placeholder */}
