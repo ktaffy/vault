@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
     View,
     Text,
@@ -10,6 +10,7 @@ import {
     Linking,
     Dimensions,
 } from 'react-native';
+import { useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
@@ -18,6 +19,21 @@ import { snippetService, type Snippet } from '../../services/api/snippets';
 import { useRouter } from 'expo-router';
 import { useAudioPlayback } from '../../hooks/useAudioPlayback';
 import { formatTime } from '../../utils/audioHelpers';
+import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
+import { audioCache } from '../../utils/audioCache';
+
+const PreloadAudio: React.FC<{ audioUrl: string }> = ({ audioUrl }) => {
+    const player = useAudioPlayer(audioUrl);
+    const status = useAudioPlayerStatus(player);
+
+    useEffect(() => {
+        if (status.isLoaded && !audioCache.has(audioUrl)) {
+            audioCache.set(audioUrl, player);
+        }
+    }, [status.isLoaded, audioUrl]);
+
+    return null;
+};
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -35,6 +51,8 @@ export const ArtistProfileScreen: React.FC<ArtistProfileScreenProps> = ({ artist
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [playingSnippetId, setPlayingSnippetId] = useState<number | null>(null);
+    const [currentPlayer, setCurrentPlayer] = useState<any>(null);
+    const [audioProgress, setAudioProgress] = useState(0);
 
     useEffect(() => {
         fetchArtistData();
@@ -60,6 +78,23 @@ export const ArtistProfileScreen: React.FC<ArtistProfileScreenProps> = ({ artist
         }
     };
 
+    useFocusEffect(
+        useCallback(() => {
+            return () => {
+                setPlayingSnippetId(null);
+                setCurrentPlayer(null);
+                setAudioProgress(0);
+
+                audioCache.forEach((player) => {
+                    try {
+                        player.pause();
+                    } catch (error) {
+                    }
+                });
+            };
+        }, [])
+    );
+
     const handleOpenLink = async (url: string | null | undefined, platform: string) => {
         if (!url) return;
 
@@ -78,11 +113,20 @@ export const ArtistProfileScreen: React.FC<ArtistProfileScreenProps> = ({ artist
         }
     };
 
-    const handlePlaySnippet = (snippetId: number) => {
-        if (playingSnippetId === snippetId) {
+    const handlePlaySnippet = (snippet: Snippet) => {
+        if (playingSnippetId === snippet.id) {
             setPlayingSnippetId(null);
+            setCurrentPlayer(null);
+            setAudioProgress(0);
         } else {
-            setPlayingSnippetId(snippetId);
+            if (currentPlayer) {
+                setPlayingSnippetId(null);
+                setCurrentPlayer(null);
+                setAudioProgress(0);
+            }
+
+            setPlayingSnippetId(snippet.id);
+            setCurrentPlayer(snippet);
         }
     };
 
@@ -121,7 +165,7 @@ export const ArtistProfileScreen: React.FC<ArtistProfileScreenProps> = ({ artist
                     style={[styles.backButton, {
                         backgroundColor: theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)'
                     }]}
-                    onPress={() => router.back()}
+                    onPress={() => router.push(`/(tabs)/profile`)}
                 >
                     <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
                 </Pressable>
@@ -244,13 +288,35 @@ export const ArtistProfileScreen: React.FC<ArtistProfileScreenProps> = ({ artist
                         </View>
                     ) : (
                         <View style={styles.snippetsList}>
+                            {/* Preload all snippet audio */}
+                            {snippets.map((snippet) => (
+                                <PreloadAudio key={`preload-${snippet.id}`} audioUrl={snippet.audio_url} />
+                            ))}
+
+                                {/* Audio player component */}
+                                {playingSnippetId && (
+                                    <AudioPlayerComponent
+                                        snippet={snippets.find(s => s.id === playingSnippetId)!}
+                                        onEnd={() => {
+                                            setPlayingSnippetId(null);
+                                            setCurrentPlayer(null);
+                                            setAudioProgress(0);
+                                        }}
+                                        onProgress={(progress) => {
+                                            setAudioProgress(progress);
+                                        }}
+                                    />
+                                )}
+
+                            {/* Render snippet cards */}
                             {snippets.map((snippet) => (
                                 <SnippetCard
                                     key={snippet.id}
                                     snippet={snippet}
                                     isPlaying={playingSnippetId === snippet.id}
-                                    onPlay={() => handlePlaySnippet(snippet.id)}
+                                    onPlay={() => handlePlaySnippet(snippet)}
                                     theme={theme}
+                                    progress={playingSnippetId === snippet.id ? audioProgress : 0}
                                 />
                             ))}
                         </View>
@@ -261,29 +327,65 @@ export const ArtistProfileScreen: React.FC<ArtistProfileScreenProps> = ({ artist
     );
 };
 
+const AudioPlayerComponent: React.FC<{
+    snippet: Snippet;
+    onEnd: () => void;
+    onProgress: (progress: number) => void;
+}> = ({ snippet, onEnd, onProgress }) => {
+    const cachedPlayer = audioCache.get(snippet.audio_url);
+
+    const { play, pause, isLoaded } = useAudioPlayback(snippet.audio_url, {
+        autoPlay: false,
+        onEnd,
+        onProgress,
+        cachedPlayer,
+    });
+
+    useEffect(() => {
+        audioCache.forEach((player, url) => {
+            if (url !== snippet.audio_url) {
+                try {
+                    player.pause();
+                } catch (error) {
+                    // Ignore
+                }
+            }
+        });
+
+        if (cachedPlayer) {
+            try {
+                cachedPlayer.seekTo(0);
+                cachedPlayer.play();
+            } catch (error) {
+                console.error('Cached player error:', error);
+            }
+        } else if (isLoaded) {
+            play();
+        }
+
+        return () => {
+            try {
+                if (cachedPlayer) {
+                    cachedPlayer.pause();
+                } else {
+                    pause();
+                }
+            } catch (error) {
+                // Ignore
+            }
+        };
+    }, [snippet.audio_url, isLoaded]);
+
+    return null;
+};
+
 const SnippetCard: React.FC<{
     snippet: Snippet;
     isPlaying: boolean;
     onPlay: () => void;
     theme: any;
-}> = ({ snippet, isPlaying, onPlay, theme }) => {
-    const [progress, setProgress] = useState(0);
-
-    const { play, pause, isLoaded } = useAudioPlayback(snippet.audio_url, {
-        autoPlay: false,
-        onEnd: () => onPlay(),
-        onProgress: (prog) => {
-            setProgress(prog);
-        },
-    });
-
-    useEffect(() => {
-        if (isPlaying && isLoaded) {
-            play();
-        } else {
-            pause();
-        }
-    }, [isPlaying, isLoaded]);
+    progress: number;
+}> = ({ snippet, isPlaying, onPlay, theme, progress }) => {
 
     return (
         <View style={[styles.snippetCard, {

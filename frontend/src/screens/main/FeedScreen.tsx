@@ -1,5 +1,7 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useCallback } from 'react';
+import { useFocusEffect } from 'expo-router';
 import { View, StyleSheet, Animated, Dimensions } from 'react-native';
+import { audioCache } from '../../utils/audioCache';
 import { useTheme } from '../../hooks/useTheme';
 import { useFeed } from '../../hooks/useFeed';
 import { useFeedAudio } from '../../hooks/useFeedAudio';
@@ -14,7 +16,24 @@ export const FeedScreen = () => {
     const { theme } = useTheme();
     const { currentSnippet, loading, currentIndex } = useFeed();
     const { fire, skip } = useSwipe();
-    const { isPlaying, progress, duration, seekTo, togglePlayPause, currentTime } = useFeedAudio();
+    const { isPlaying, progress, duration, seekTo, togglePlayPause, currentTime, pause } = useFeedAudio();
+    const isFocused = useRef(true);
+
+    const pauseRef = useRef(pause);
+
+    useEffect(() => {
+        pauseRef.current = pause;
+    }, [pause]);
+
+    useFocusEffect(
+        useCallback(() => {
+            isFocused.current = true;
+            return () => {
+                isFocused.current = false;
+                pauseRef.current();
+            };
+        }, [])
+    );
 
     const slideAnim = useRef(new Animated.Value(0)).current;
     const previousIndex = useRef(currentIndex);
