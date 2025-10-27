@@ -74,6 +74,9 @@ func (h *Handler) UpdateProfile(c *gin.Context) {
 
 	username := c.PostForm("username")
 	email := c.PostForm("email")
+	spotifyURL := c.PostForm("spotify_url")
+	soundcloudURL := c.PostForm("soundcloud_url")
+	linktreeURL := c.PostForm("linktree_url")
 
 	var profilePicData []byte
 	var profilePicFilename string
@@ -89,8 +92,11 @@ func (h *Handler) UpdateProfile(c *gin.Context) {
 	}
 
 	req := &UpdateProfileReq{
-		Username: username,
-		Email:    email,
+		Username:      username,
+		Email:         email,
+		SpotifyURL:    spotifyURL,
+		SoundCloudURL: soundcloudURL,
+		LinktreeURL:   linktreeURL,
 	}
 
 	resp, err := h.Service.UpdateProfile(c.Request.Context(), userID.(int64), req, profilePicData, profilePicFilename)

@@ -189,55 +189,37 @@ export const ArtistProfileScreen: React.FC<ArtistProfileScreenProps> = ({ artist
                         <View style={styles.socialLinks}>
                             {profile.spotify_url && (
                                 <Pressable
-                                    style={[styles.socialButton, {
-                                        backgroundColor: theme.colors.surface,
-                                        borderColor: '#1DB954',
-                                    }]}
+                                    style={styles.socialButton}
                                     onPress={() => handleOpenLink(profile.spotify_url, 'Spotify')}
                                 >
                                     <Image
                                         source={require('../../assets/logos/spotify.png')}
                                         style={styles.socialLogo}
                                     />
-                                    <Text style={[styles.socialText, { color: theme.colors.text }]}>
-                                        Spotify
-                                    </Text>
                                 </Pressable>
                             )}
 
                             {profile.soundcloud_url && (
                                 <Pressable
-                                    style={[styles.socialButton, {
-                                        backgroundColor: theme.colors.surface,
-                                        borderColor: '#FF5500',
-                                    }]}
+                                    style={styles.socialButton}
                                     onPress={() => handleOpenLink(profile.soundcloud_url, 'SoundCloud')}
                                 >
                                     <Image
                                         source={require('../../assets/logos/soundcloud.png')}
                                         style={styles.socialLogo}
                                     />
-                                    <Text style={[styles.socialText, { color: theme.colors.text }]}>
-                                        SoundCloud
-                                    </Text>
                                 </Pressable>
                             )}
 
                             {profile.linktree_url && (
                                 <Pressable
-                                    style={[styles.socialButton, {
-                                        backgroundColor: theme.colors.surface,
-                                        borderColor: '#39E09B',
-                                    }]}
+                                    style={styles.socialButton}
                                     onPress={() => handleOpenLink(profile.linktree_url, 'Linktree')}
                                 >
                                     <Image
                                         source={require('../../assets/logos/linktree.png')}
                                         style={styles.socialLogo}
                                     />
-                                    <Text style={[styles.socialText, { color: theme.colors.text }]}>
-                                        Linktree
-                                    </Text>
                                 </Pressable>
                             )}
                         </View>
@@ -477,23 +459,20 @@ const styles = StyleSheet.create({
     },
     socialLinks: {
         flexDirection: 'row',
-        flexWrap: 'wrap',
         justifyContent: 'center',
-        gap: 12,
-        width: '100%',
+        gap: 16,
+        marginTop: 4,
     },
     socialButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-        paddingVertical: 10,
-        paddingHorizontal: 16,
-        borderRadius: 12,
-        borderWidth: 1.5,
+        borderRadius: 9,
+        borderWidth: 1,
+        borderColor: 'rgba(151, 145, 145, 0.3)',
+        borderStyle: 'solid',
+        padding: 8,
     },
     socialLogo: {
-        width: 20,
-        height: 20,
+        width: 24,
+        height: 24,
     },
     socialText: {
         fontSize: 14,

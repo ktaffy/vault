@@ -98,11 +98,11 @@ export const authService = {
     updateProfile: async (data: UpdateProfileRequest): Promise<UpdateProfileResponse> => {
         const formData = new FormData();
 
-        if (data.username) {
+        if (data.username !== undefined && data.username !== null) {
             formData.append('username', data.username);
         }
 
-        if (data.email) {
+        if (data.email !== undefined && data.email !== null) {
             formData.append('email', data.email);
         }
 
@@ -110,15 +110,15 @@ export const authService = {
             formData.append('profile_pic', data.profile_pic);
         }
 
-        if (data.spotify_url !== undefined) {
+        if (data.spotify_url !== undefined && data.spotify_url !== null) {
             formData.append('spotify_url', data.spotify_url);
         }
 
-        if (data.soundcloud_url !== undefined) {
+        if (data.soundcloud_url !== undefined && data.soundcloud_url !== null) {
             formData.append('soundcloud_url', data.soundcloud_url);
         }
 
-        if (data.linktree_url !== undefined) {
+        if (data.linktree_url !== undefined && data.linktree_url !== null) {
             formData.append('linktree_url', data.linktree_url);
         }
 

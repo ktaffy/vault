@@ -113,8 +113,15 @@ export const ProfileScreen = () => {
             return;
         }
 
-        if (editUsername === user.username && editEmail === user.email && !editProfilePic) {
+        const usernameChanged = editUsername !== user.username;
+        const emailChanged = editEmail !== user.email;
+        const spotifyChanged = editSpotifyURL !== (user.spotify_url || '');
+        const soundcloudChanged = editSoundCloudURL !== (user.soundcloud_url || '');
+        const linktreeChanged = editLinktreeURL !== (user.linktree_url || '');
+
+        if (!usernameChanged && !emailChanged && !editProfilePic && !spotifyChanged && !soundcloudChanged && !linktreeChanged) {
             setShowEditModal(false);
+            setShowLinksModal(false);
             return;
         }
 
@@ -142,6 +149,7 @@ export const ProfileScreen = () => {
                 };
             }
 
+            console.log('Sending update data:', updateData);
             const response = await authService.updateProfile(updateData);
 
             dispatch(updateUserProfile({
@@ -154,6 +162,7 @@ export const ProfileScreen = () => {
             }));
 
             setShowEditModal(false);
+            setShowLinksModal(false);
             setEditProfilePic(null);
             showToast('Profile updated successfully', 'success');
 
