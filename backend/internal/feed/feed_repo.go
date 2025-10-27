@@ -35,11 +35,13 @@ func (r *repo) GetAvailableSnippets(ctx context.Context, userID int64) ([]*FeedI
 			   s.duration_seconds, s.play_count, s.fire_count, s.fire_rate, s.uploaded_at
 		FROM snippets s
 		JOIN users u ON s.artist_id = u.id
-		WHERE s.is_active = TRUE 
-		  AND s.artist_id != $1
-		  AND s.id NOT IN (
-			  SELECT snippet_id FROM swipes WHERE user_id = $1
-		  )`
+		WHERE s.is_active = TRUE
+		AND s.id NOT IN (
+			SELECT snippet_id 
+			FROM swipes 
+			WHERE user_id = $1 
+				AND swiped_at > NOW() - INTERVAL '30 days'
+		)`
 
 	rows, err := r.db.QueryContext(ctx, query, userID)
 	if err != nil {

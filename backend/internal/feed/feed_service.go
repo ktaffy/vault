@@ -27,13 +27,11 @@ func (s *service) GetNextSnippet(c context.Context, userID int64) (*NextSnippetR
 	ctx, cancel := context.WithTimeout(c, s.timeOut)
 	defer cancel()
 
-	// Get user's swipe count to determine phase
 	swipeCount, err := s.Repo.GetUserSwipeCount(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
 
-	// Phase 1: Random for first 20 swipes (no queue needed)
 	if swipeCount < 20 {
 		availableSnippets, err := s.Repo.GetAvailableSnippets(ctx, userID)
 		if err != nil {
@@ -47,34 +45,28 @@ func (s *service) GetNextSnippet(c context.Context, userID int64) (*NextSnippetR
 		return &NextSnippetRes{Snippet: randomSnippet}, nil
 	}
 
-	// Phase 2/3: Use queue system
 	queueSize, err := s.Repo.GetUserQueueSize(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
 
-	// If queue is empty or low, refill it
 	if queueSize == 0 {
 		err = s.RefillUserQueue(ctx, userID)
 		if err != nil {
 			return nil, err
 		}
 	} else if queueSize <= 3 {
-		// Background refill when queue gets low
 		go func() {
 			bgCtx := context.Background()
 			s.RefillUserQueue(bgCtx, userID)
 		}()
 	}
 
-	// Get next snippet from queue
 	nextSnippet, err := s.Repo.GetNextFromQueue(ctx, userID)
 	if err != nil {
-		// Fallback to real-time generation if queue fails
 		return s.generateSnippetRealTime(ctx, userID)
 	}
 
-	// Remove the snippet from queue after serving
 	go func() {
 		bgCtx := context.Background()
 		s.Repo.RemoveFromQueue(bgCtx, userID, nextSnippet.SnippetID)
@@ -87,32 +79,27 @@ func (s *service) RefillUserQueue(c context.Context, userID int64) error {
 	ctx, cancel := context.WithTimeout(c, s.timeOut)
 	defer cancel()
 
-	// Get available snippets
 	availableSnippets, err := s.Repo.GetAvailableSnippets(ctx, userID)
 	if err != nil {
 		return err
 	}
 
 	if len(availableSnippets) == 0 {
-		return nil // No snippets to add
+		return nil
 	}
 
-	// Select and score candidates
 	candidates := s.selectCandidates(ctx, availableSnippets, userID)
 	if len(candidates) == 0 {
 		return nil
 	}
 
-	// Score and sort all candidates
 	scoredSnippets := s.scoreAndSortCandidates(ctx, candidates, userID)
 
-	// Take top 10 for queue
 	queueSnippets := scoredSnippets
 	if len(queueSnippets) > 10 {
 		queueSnippets = queueSnippets[:10]
 	}
 
-	// Add to queue
 	return s.Repo.AddToQueue(ctx, userID, queueSnippets)
 }
 
@@ -121,7 +108,6 @@ func (s *service) scoreAndSortCandidates(ctx context.Context, candidates []*Feed
 		return candidates
 	}
 
-	// Get user's taste profile
 	firedArtists, _ := s.Repo.GetUserFiredArtists(ctx, userID)
 	similarArtists, _ := s.Repo.GetSimilarArtists(ctx, firedArtists)
 
@@ -130,7 +116,6 @@ func (s *service) scoreAndSortCandidates(ctx context.Context, candidates []*Feed
 		similarArtistMap[artistID] = true
 	}
 
-	// Score each candidate
 	type scoredSnippet struct {
 		snippet *FeedItem
 		score   float64
@@ -145,7 +130,6 @@ func (s *service) scoreAndSortCandidates(ctx context.Context, candidates []*Feed
 		})
 	}
 
-	// Sort by score (highest first)
 	for i := 0; i < len(scored)-1; i++ {
 		for j := i + 1; j < len(scored); j++ {
 			if scored[j].score > scored[i].score {
@@ -154,7 +138,6 @@ func (s *service) scoreAndSortCandidates(ctx context.Context, candidates []*Feed
 		}
 	}
 
-	// Extract sorted snippets
 	var result []*FeedItem
 	for _, item := range scored {
 		result = append(result, item.snippet)
@@ -164,7 +147,6 @@ func (s *service) scoreAndSortCandidates(ctx context.Context, candidates []*Feed
 }
 
 func (s *service) generateSnippetRealTime(ctx context.Context, userID int64) (*NextSnippetRes, error) {
-	// Fallback to old real-time method if queue fails
 	availableSnippets, err := s.Repo.GetAvailableSnippets(ctx, userID)
 	if err != nil {
 		return nil, err
@@ -196,12 +178,12 @@ func (s *service) selectCandidates(ctx context.Context, available []*FeedItem, u
 
 	firedArtists, err := s.Repo.GetUserFiredArtists(ctx, userID)
 	if err != nil {
-		firedArtists = []int64{} // Continue without similarity matching
+		firedArtists = []int64{}
 	}
 
 	similarArtists, err := s.Repo.GetSimilarArtists(ctx, firedArtists)
 	if err != nil {
-		similarArtists = []int64{} // Continue without similarity matching
+		similarArtists = []int64{}
 	}
 
 	similarArtistMap := make(map[int64]bool)
