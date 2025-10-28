@@ -31,7 +31,7 @@ func NewRepo(db DBTX) Repo {
 
 func (r *repo) GetAvailableSnippets(ctx context.Context, userID int64) ([]*FeedItem, error) {
 	query := `
-		SELECT s.id, s.artist_id, u.username, s.title, s.audio_url, 
+		SELECT s.id, s.artist_id, u.username, u.pfp_url, s.title, s.audio_url, s.cover_art_url,
 			   s.duration_seconds, s.play_count, s.fire_count, s.fire_rate, s.uploaded_at
 		FROM snippets s
 		JOIN users u ON s.artist_id = u.id
@@ -53,13 +53,15 @@ func (r *repo) GetAvailableSnippets(ctx context.Context, userID int64) ([]*FeedI
 	for rows.Next() {
 		item := &FeedItem{}
 		err := rows.Scan(
-			&item.SnippetID, &item.ArtistID, &item.ArtistName,
-			&item.Title, &item.AudioURL, &item.Duration,
-			&item.PlayCount, &item.FireCount, &item.FireRate, &item.UploadedAt,
+			&item.SnippetID, &item.ArtistID, &item.ArtistName, &item.ArtistProfilePic,
+			&item.Title, &item.AudioURL, &item.CoverArtURL,
+			&item.Duration, &item.PlayCount, &item.FireCount,
+			&item.FireRate, &item.UploadedAt,
 		)
 		if err != nil {
 			return nil, err
 		}
+		item.ID = item.SnippetID
 		snippets = append(snippets, item)
 	}
 
@@ -144,7 +146,7 @@ func (r *repo) GetUserQueueSize(ctx context.Context, userID int64) (int, error) 
 
 func (r *repo) GetNextFromQueue(ctx context.Context, userID int64) (*FeedItem, error) {
 	query := `
-        SELECT fq.snippet_id, s.artist_id, u.username, s.title, s.audio_url,
+        SELECT fq.snippet_id, s.artist_id, u.username, u.pfp_url, s.title, s.audio_url, s.cover_art_url,
                s.duration_seconds, s.play_count, s.fire_count, s.fire_rate, s.uploaded_at
         FROM feed_queues fq
         JOIN snippets s ON fq.snippet_id = s.id
@@ -155,15 +157,17 @@ func (r *repo) GetNextFromQueue(ctx context.Context, userID int64) (*FeedItem, e
 
 	item := &FeedItem{}
 	err := r.db.QueryRowContext(ctx, query, userID).Scan(
-		&item.SnippetID, &item.ArtistID, &item.ArtistName,
-		&item.Title, &item.AudioURL, &item.Duration,
-		&item.PlayCount, &item.FireCount, &item.FireRate, &item.UploadedAt,
+		&item.SnippetID, &item.ArtistID, &item.ArtistName, &item.ArtistProfilePic,
+		&item.Title, &item.AudioURL, &item.CoverArtURL,
+		&item.Duration, &item.PlayCount, &item.FireCount,
+		&item.FireRate, &item.UploadedAt,
 	)
 
 	if err != nil {
 		return nil, err
 	}
 
+	item.ID = item.SnippetID
 	return item, nil
 }
 

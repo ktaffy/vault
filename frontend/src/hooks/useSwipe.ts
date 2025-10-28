@@ -21,29 +21,21 @@ export const useSwipe = () => {
 
     const handleSwipe = useCallback(async (action: 'fire' | 'skip') => {
         if (!currentSnippet) {
-            console.warn('No current snippet to swipe');
             return;
         }
-
-        console.log(`${action === 'fire' ? '🔥' : '⏭️'} Swiping:`, currentSnippet.title);
 
         try {
             dispatch(moveToNextSnippet());
 
             const response = await swipeService.recordSwipe(currentSnippet.snippet_id, action);
 
-            if (action === 'fire' && response.followed_artist) {
-                console.log('✅ Artist followed:', currentSnippet.artist_name);
-            }
-
             const remainingSnippets = snippets.length - currentIndex - 1;
             if (remainingSnippets <= 2 && hasMore) {
-                console.log('📥 Preloading next snippet...');
                 dispatch(fetchNextSnippet());
             }
 
         } catch (err: any) {
-            console.error('❌ Swipe error:', err);
+            console.error('Swipe error:', err);
         }
     }, [currentSnippet, snippets, currentIndex, hasMore, dispatch]);
 

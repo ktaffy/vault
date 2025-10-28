@@ -23,7 +23,6 @@ export const useFeed = () => {
 
     const loadInitialFeed = useCallback(async () => {
         if (snippets.length === 0 && !loading) {
-            console.log('📥 Loading initial feed...');
             dispatch(preloadSnippets(3));
         }
     }, [snippets.length, loading, dispatch]);
@@ -32,7 +31,6 @@ export const useFeed = () => {
         const remainingSnippets = snippets.length - currentIndex;
 
         if (remainingSnippets < 3 && hasMore && !loading) {
-            console.log('📥 Preloading more snippets... (remaining:', remainingSnippets, ')');
             dispatch(fetchNextSnippet());
         }
     }, [snippets.length, currentIndex, hasMore, loading, dispatch]);

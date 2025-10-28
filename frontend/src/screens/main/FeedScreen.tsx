@@ -37,30 +37,39 @@ export const FeedScreen = () => {
 
     const slideAnim = useRef(new Animated.Value(0)).current;
     const previousIndex = useRef(currentIndex);
+    const [displayedSnippet, setDisplayedSnippet] = React.useState(currentSnippet);
 
     useEffect(() => {
-        if (previousIndex.current !== currentIndex && currentSnippet) {
-            Animated.sequence([
-                Animated.timing(slideAnim, {
-                    toValue: -SCREEN_WIDTH,
-                    duration: 250,
-                    useNativeDriver: true,
-                }),
-                Animated.timing(slideAnim, {
-                    toValue: SCREEN_WIDTH,
-                    duration: 0,
-                    useNativeDriver: true,
-                }),
-                Animated.timing(slideAnim, {
-                    toValue: 0,
-                    duration: 250,
-                    useNativeDriver: true,
-                }),
-            ]).start();
+        if (previousIndex.current !== currentIndex && currentSnippet && displayedSnippet) {
+            if (currentSnippet.snippet_id !== displayedSnippet.snippet_id) {
+                Animated.sequence([
+                    Animated.timing(slideAnim, {
+                        toValue: -SCREEN_WIDTH,
+                        duration: 250,
+                        useNativeDriver: true,
+                    }),
+                    Animated.timing(slideAnim, {
+                        toValue: SCREEN_WIDTH,
+                        duration: 0,
+                        useNativeDriver: true,
+                    }),
+                    Animated.timing(slideAnim, {
+                        toValue: 0,
+                        duration: 250,
+                        useNativeDriver: true,
+                    }),
+                ]).start();
+
+                setTimeout(() => {
+                    setDisplayedSnippet(currentSnippet);
+                }, 250);
+            }
 
             previousIndex.current = currentIndex;
+        } else if (!displayedSnippet && currentSnippet) {
+            setDisplayedSnippet(currentSnippet);
         }
-    }, [currentIndex, currentSnippet]);
+    }, [currentIndex, currentSnippet, displayedSnippet]);
 
     const handleSeek = (seekProgress: number) => {
         const seekTime = seekProgress * duration;
@@ -80,7 +89,7 @@ export const FeedScreen = () => {
         }
     };
 
-    if (loading && !currentSnippet) {
+    if (loading && !displayedSnippet) {
         return (
             <View style={styles.container}>
                 <LoadingSpinner
@@ -91,7 +100,7 @@ export const FeedScreen = () => {
         );
     }
 
-    if (!currentSnippet) {
+    if (!displayedSnippet) {
         return (
             <View style={styles.container}>
                 <LoadingSpinner
@@ -113,7 +122,7 @@ export const FeedScreen = () => {
                 ]}
             >
                 <SnippetCard
-                    snippet={currentSnippet}
+                    snippet={displayedSnippet}
                     isPlaying={isPlaying}
                     progress={progress}
                     onSeek={handleSeek}

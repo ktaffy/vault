@@ -3,6 +3,7 @@ export interface FeedSnippet {
     snippet_id: number;
     artist_id: number;
     artist_name: string;
+    artist_profile_pic?: string | null;
     title: string;
     audio_url: string;
     cover_art_url?: string | null;

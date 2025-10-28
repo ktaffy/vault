@@ -30,8 +30,6 @@ export const useFeedAudio = () => {
 
     useEffect(() => {
         if (currentSnippet && currentSnippet.snippet_id !== previousSnippetId.current) {
-            console.log('🎵 Snippet changed to:', currentSnippet.title, 'by', currentSnippet.artist_name);
-
             audioCache.forEach((player, url) => {
                 if (url !== currentSnippet.audio_url) {
                     try {

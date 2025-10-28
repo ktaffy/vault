@@ -95,23 +95,47 @@ export const SnippetCard: React.FC<SnippetCardProps> = ({
 
     return (
         <View style={styles.container}>
-            {/* Background - gradient */}
+            {/* Background - cover art or gradient */}
             <View style={[styles.background, { backgroundColor: theme.colors.surface }]}>
-                {theme.isDark ? (
-                    <LinearGradient
-                        colors={[
-                            'rgba(155, 89, 208, 0.2)',
-                            'rgba(155, 89, 208, 0.1)',
-                            'rgba(0, 0, 0, 0.6)',
-                            'rgba(0, 0, 0, 0.95)',
-                        ]}
-                        style={styles.gradient}
-                        locations={[0, 0.3, 0.7, 1]}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 0, y: 1 }}
-                    />
+                {snippet.cover_art_url ? (
+                    <>
+                        {/* Cover Art Image */}
+                        <Image
+                            source={{ uri: snippet.cover_art_url }}
+                            style={styles.coverArtImage}
+                            resizeMode="cover"
+                        />
+                        {/* Dark overlay for text readability */}
+                        <LinearGradient
+                            colors={
+                                theme.isDark
+                                    ? ['rgba(0, 0, 0, 0.3)', 'rgba(0, 0, 0, 0.5)', 'rgba(0, 0, 0, 0.6)']
+                                    : ['rgba(0, 0, 0, 0.3)', 'rgba(0, 0, 0, 0.5)', 'rgba(0, 0, 0, 0.7)']
+                            }
+                            style={styles.gradient}
+                            locations={[0, 0.5, 1]}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 0, y: 1 }}
+                        />
+                    </>
                 ) : (
-                    <View style={[styles.gradient, { backgroundColor: '#ffffff' }]} />
+                    // Original gradient when no cover art
+                    theme.isDark ? (
+                        <LinearGradient
+                            colors={[
+                                'rgba(155, 89, 208, 0.2)',
+                                'rgba(155, 89, 208, 0.1)',
+                                'rgba(0, 0, 0, 0.6)',
+                                'rgba(0, 0, 0, 0.95)',
+                            ]}
+                            style={styles.gradient}
+                            locations={[0, 0.3, 0.7, 1]}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 0, y: 1 }}
+                        />
+                    ) : (
+                        <View style={[styles.gradient, { backgroundColor: '#ffffff' }]} />
+                    )
                 )}
             </View>
 
@@ -197,9 +221,16 @@ export const SnippetCard: React.FC<SnippetCardProps> = ({
                             <View style={[styles.artistAvatar, {
                                 backgroundColor: theme.colors.primary
                             }]}>
-                                <Text style={styles.artistInitial}>
-                                    {snippet.artist_name.charAt(0).toUpperCase()}
-                                </Text>
+                                {snippet.artist_profile_pic ? (
+                                    <Image
+                                        source={{ uri: snippet.artist_profile_pic }}
+                                        style={styles.artistAvatarImage}
+                                    />
+                                ) : (
+                                    <Text style={styles.artistInitial}>
+                                        {snippet.artist_name.charAt(0).toUpperCase()}
+                                    </Text>
+                                )}
                             </View>
                             <Text style={styles.artistName} numberOfLines={1}>
                                 {snippet.artist_name}
@@ -225,6 +256,11 @@ const styles = StyleSheet.create({
     },
     gradient: {
         flex: 1,
+    },
+    coverArtImage: {
+        ...StyleSheet.absoluteFillObject,
+        width: '100%',
+        height: '100%',
     },
     content: {
         flex: 1,
@@ -294,8 +330,8 @@ const styles = StyleSheet.create({
         width: 12,
         height: 12,
         borderRadius: 6,
-        top: -4.5, // Center it on the bar
-        marginLeft: -6, // Center it on the position
+        top: -4.5,
+        marginLeft: -6,
         shadowColor: '#000000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.3,
@@ -332,6 +368,11 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.5,
         shadowRadius: 4,
         elevation: 4,
+    },
+    artistAvatarImage: {
+        width: 28,
+        height: 28,
+        borderRadius: 14,
     },
     artistInitial: {
         color: '#ffffff',
