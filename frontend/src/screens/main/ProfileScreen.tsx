@@ -307,10 +307,10 @@ export const ProfileScreen = () => {
                 </View>
 
                 {/* Divider */}
-                <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
+                {/* <View style={[styles.divider, { backgroundColor: theme.colors.border }]} /> */}
 
                 {/* Theme Toggle */}
-                <View style={styles.settingItem}>
+                {/* <View style={styles.settingItem}>
                     <View style={styles.settingLeft}>
                         <Ionicons
                             name={theme.isDark ? "moon" : "sunny"}
@@ -327,7 +327,7 @@ export const ProfileScreen = () => {
                         trackColor={{ false: '#d1d5db', true: theme.colors.primary }}
                         thumbColor="#ffffff"
                     />
-                </View>
+                </View> */}
 
                 {/* Divider */}
                 <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
@@ -387,7 +387,7 @@ export const ProfileScreen = () => {
                                         <View style={styles.snippetMeta}>
                                             <Ionicons name="flame" size={14} color={theme.colors.primary} />
                                             <Text style={[styles.snippetMetaText, { color: theme.colors.textSecondary }]}>
-                                                {snippet.fire_count} fires
+                                                {snippet.fire_count}
                                             </Text>
                                         </View>
                                     </View>

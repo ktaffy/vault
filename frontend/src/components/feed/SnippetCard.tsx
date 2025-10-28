@@ -65,6 +65,8 @@ export const SnippetCard: React.FC<SnippetCardProps> = ({
     const router = useRouter();
     const animatedProgress = useRef(new Animated.Value(progress)).current;
     const previousSnippetId = useRef(snippet.snippet_id);
+    const pulseAnim = useRef(new Animated.Value(1)).current;
+    const glowAnim = useRef(new Animated.Value(0)).current;
 
     useEffect(() => {
         if (previousSnippetId.current !== snippet.snippet_id) {
@@ -81,6 +83,44 @@ export const SnippetCard: React.FC<SnippetCardProps> = ({
         }).start();
     }, [progress]);
 
+    useEffect(() => {
+        if (isPlaying) {
+            Animated.loop(
+                Animated.sequence([
+                    Animated.timing(pulseAnim, {
+                        toValue: 1.03,
+                        duration: 1200,
+                        useNativeDriver: true,
+                    }),
+                    Animated.timing(pulseAnim, {
+                        toValue: 1,
+                        duration: 1200,
+                        useNativeDriver: true,
+                    }),
+                ])
+            ).start();
+
+            Animated.timing(glowAnim, {
+                toValue: 1,
+                duration: 300,
+                useNativeDriver: true,
+            }).start();
+        } else {
+            pulseAnim.stopAnimation();
+            Animated.timing(pulseAnim, {
+                toValue: 1,
+                duration: 200,
+                useNativeDriver: true,
+            }).start();
+
+            Animated.timing(glowAnim, {
+                toValue: 0,
+                duration: 200,
+                useNativeDriver: true,
+            }).start();
+        }
+    }, [isPlaying]);
+
     const handleProgressBarPress = (event: any) => {
         if (!onSeek) return;
 
@@ -95,8 +135,33 @@ export const SnippetCard: React.FC<SnippetCardProps> = ({
 
     return (
         <View style={styles.container}>
+            {/* Animated Glow Effect - Radial overlay */}
+            <Animated.View
+                style={[
+                    styles.glowLayer,
+                    {
+                        opacity: glowAnim.interpolate({
+                            inputRange: [0, 1],
+                            outputRange: [0, 0.15]
+                        }),
+                    }
+                ]}
+            >
+                <LinearGradient
+                    colors={['rgba(0, 0, 0, 0.4)', 'rgba(155, 89, 208, 0)', 'transparent']}
+                    style={StyleSheet.absoluteFillObject}
+                    start={{ x: 0.5, y: 0.5 }}
+                    end={{ x: 0.5, y: 1 }}
+                />
+            </Animated.View>
             {/* Background - cover art or gradient */}
-            <View style={[styles.background, { backgroundColor: theme.colors.surface }]}>
+            <Animated.View style={[
+                styles.background,
+                {
+                    backgroundColor: theme.colors.surface,
+                    transform: [{ scale: pulseAnim }],
+                }
+            ]}>
                 {snippet.cover_art_url ? (
                     <>
                         {/* Cover Art Image */}
@@ -137,7 +202,7 @@ export const SnippetCard: React.FC<SnippetCardProps> = ({
                         <View style={[styles.gradient, { backgroundColor: '#ffffff' }]} />
                     )
                 )}
-            </View>
+            </Animated.View>
 
             {/* Content Overlay */}
             <View style={styles.content}>
@@ -253,6 +318,10 @@ const styles = StyleSheet.create({
     },
     background: {
         ...StyleSheet.absoluteFillObject,
+    },
+    glowLayer: {
+        ...StyleSheet.absoluteFillObject,
+        zIndex: 1,
     },
     gradient: {
         flex: 1,

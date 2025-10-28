@@ -1,8 +1,8 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Animated, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useScreenSetup } from '../../hooks/useScreenSetup';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { snippetService, Snippet } from '../../services/api/snippets';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { useAudioPlayback } from '../../hooks/useAudioPlayback';
@@ -58,6 +58,22 @@ export const StatsScreen = () => {
             }
         };
     }, [isPlaying, snippet?.audio_url]);
+
+    useFocusEffect(
+            useCallback(() => {
+                return () => {
+                    setIsPlaying(false);
+                    setAudioProgress(0);
+    
+                    audioCache.forEach((player) => {
+                        try {
+                            player.pause();
+                        } catch (error) {
+                        }
+                    });
+                };
+            }, [])
+        );
 
     useEffect(() => {
         if (showDeleteConfirm) {
