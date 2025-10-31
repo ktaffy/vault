@@ -1,15 +1,16 @@
-name: EAS Build Android
+name: EAS Build
 
 on:
   push:
-    branches:
-      - main
+    tags:
+      - 'v*'
+      - 'release-*'
     paths:
       - 'frontend/**'
 
 jobs:
-  build:
-    name: Build Android Development
+  build-ios:
+    name: Build iOS and Submit to TestFlight
     runs-on: ubuntu-latest
     steps:
       - name: Setup repo
@@ -32,6 +33,6 @@ jobs:
         working-directory: frontend
         run: npm ci
 
-      - name: Build on EAS
+      - name: Build iOS
         working-directory: frontend
-        run: eas build --platform android --profile development --non-interactive --no-wait
+        run: eas build --platform ios --profile production --auto-submit --non-interactive --no-wait

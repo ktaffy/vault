@@ -12,8 +12,11 @@ end:
 
 server:
 	cd backend && go run cmd/main.go
-app:
+app-expo:
 	cd frontend && npx expo start --clear --tunnel
+
+app-dev:
+	cd frontend && npx expo start --dev-client --tunnel
 
 db-table:
 	docker exec -it vault-vault-1 psql -U vault -d vault -c "\d $(table)"
@@ -47,4 +50,22 @@ migrate-version:
 migrate-clean:
 	migrate -path $(MIGRATIONS_PATH) -database $(DB_URL) force $(version)
 
-.PHONY: setup end postgres migrate-create migrate-up migrate-down migrate-version migrate-clean server db-table check-table clean-all-data app
+build-dev-all:
+	cd frontend && eas build --platform all --profile development
+
+build-prod-all:
+	cd frontend && eas build --platform all --profile production
+
+build-dev-android:
+	cd frontend && eas build --platform android --profile development
+
+build-dev-ios:
+	cd frontend && eas build --platform ios --profile development
+
+build-prod-android:
+	cd frontend && eas build --platform android --profile production
+
+build-prod-ios:
+	cd frontend && eas build --platform ios --profile production --auto-submit
+
+.PHONY: setup end postgres migrate-create migrate-up migrate-down migrate-version migrate-clean server db-table check-table clean-all-data app build-prod-all build-dev-all build-dev-android build-dev-ios build-prod-android build-prod-ios app-dev
