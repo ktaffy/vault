@@ -1,3 +1,4 @@
+# OUTDATED DONT USE THIS
 # <span style="color: #9478e9ff;">Vault</span> Complete DB Schema
 ## 8 Tables Total
 

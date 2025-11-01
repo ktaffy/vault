@@ -1,49 +1,85 @@
-# <span style="color: #9478e9ff;">Vault</span>
-*Tinder for underground rap. Swipe through 15-second snippets. Find artists you like*
+# Vault
+
+*Tinder for underground rap. Swipe through 15-second snippets. Find artists you like.*
 
 ## Problem
-Good artists that would have many listeners, have no avenue to get music into their fans hands without label backing or paid promo
+Good artists have no avenue to get music into their fans' hands without label backing or paid promo.
 
 ## The Solution
-Every swipe guarantees your snippet gets heard. No algorithms to game. No playlists to dickride for, no artists to dickride for. Just pure discovery
+Every swipe guarantees your snippet gets heard. No algorithms to game. No playlists to beg for. Just pure discovery.
 
 ## How It Works
 ### For Listeners
-1. Open app -> snippet autoplays
+1. Open app → snippet autoplays
 2. 🔥 = save/follow artist
 3. 🗑️ = next snippet
 4. Get addicted to discovering
 
 ### For Artists
 1. Upload **ONE** 15-second unreleased snippet
-2. Watch your play count grow and more listeners checking on DSP's
+2. Watch your play count grow
 3. Get real fans, not bots
 
-## Why It's Different
-- Not Soundcloud: no searching through trash
-- Not Spotify: Underground only, unreleased only
-- Not TikTok: Music-first, not personality
-- Not Playlists: Every artist gets heard equally
+## Tech Stack
+- **Backend:** Go, PostgreSQL, AWS S3
+- **Frontend:** React Native, Expo, Redux Toolkit
+- **Infrastructure:** Railway (backend), EAS (mobile builds)
 
-## The Tech
-- Backend: Go + PostgreSQL
-- Frontend: React Native
-- Storage: Amazon S3
-- Architecture: Dead simple by design
+## Documentation
 
-## Why This Wins
-**For Artists**: Finally, guaranteed ears on music. Not begging for plays. Not lost in playlists. Every upload gets heard.
+**Start Here:**
+- [Setup Guide](docs/setup.md) - Get the project running locally
 
-**For Listeners**: No more digging through trash. No paralysis from choice. Just swipe and discover heat.
+**Development:**
+- [Development Workflow](docs/workflows.md) - Daily development process
+- [Project Structure](docs/project-structure.md) - Code organization
 
-**The Hook**: *"I found them at 100 plays"* becomes the new *"I knew them before they were famous"*
+**API Reference:**
+- [API Documentation](docs/backend/api.md) - All endpoints
+- [Database Schema](docs/backend/db.md) - Database structure
+- [Backend Architecture](docs/backend/design.md) - 3-layer pattern
 
-## Potential issues
-- Artists must post their own snippets, not already established artists or stealing snippets
-- Trash snippets ruin the experience. After 100 skips in a row, snippet gets shadowbanned
-- One snippet per artist until 50+ fire rate
+**Frontend:**
+- [Frontend Architecture](docs/frontend/arch.md) - React Native structure
 
-## Other docs
-- [API Documenation](docs/backend/api.md)
-- [DB Documentation](docs/backend/db.md)
-- [Design Documentation](docs/backend/design.md)
+## Quick Start
+```bash
+# 1. Setup (first time only) - runs docker image and migrations
+npm install
+go mod tidy
+make setup
+
+# 2. Start backend
+make server
+
+# 3. Start frontend (in another terminal)
+make app-dev
+```
+
+See [Setup Guide](docs/SETUP.md) for detailed instructions.
+
+## Key Commands
+```bash
+# Database
+make setup              # Initial setup
+make postgres           # Open database shell
+make migrate-up         # Run migrations
+make migrate-create name=migration_name
+
+# Development
+make server             # Run backend (local)
+make server-staging     # Run backend (staging)
+make app-dev            # Run Expo dev client
+
+# Builds
+make build-staging      # Build + submit to TestFlight
+make build-prod         # Build + submit to App Store (NEVER DO THIS)
+```
+
+## Contributing
+
+1. Read [Development Workflow](docs/WORKFLOWS.md)
+2. Create a feature branch
+3. Make your changes
+4. Test locally
+5. Open a pull request
