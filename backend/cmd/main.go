@@ -19,7 +19,7 @@ import (
 func main() {
 	env := os.Getenv("GO_ENV")
 	if env == "" {
-		env = "local" // default to local development
+		env = "local"
 	}
 	if env == "local" {
 		envFile := fmt.Sprintf(".env.%s", env)
@@ -63,6 +63,6 @@ func main() {
 
 	port := os.Getenv("SERVER_PORT")
 
-	router.InitRouter(userHandler, snipHandler, swipeHandler, feedHandler)
+	router.InitRouter(env, userHandler, snipHandler, swipeHandler, feedHandler)
 	router.Start(":" + port)
 }

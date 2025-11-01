@@ -11,8 +11,18 @@ import (
 
 var r *gin.Engine
 
-func InitRouter(userHandler *user.Handler, snippetHandler *snippet.Handler, swipeHandler *swipe.Handler, feedHandler *feed.Handler) {
+func InitRouter(env string, userHandler *user.Handler, snippetHandler *snippet.Handler, swipeHandler *swipe.Handler, feedHandler *feed.Handler) {
+
+	if env == "staging" || env == "production" {
+		gin.SetMode(gin.ReleaseMode)
+	}
+
 	r = gin.Default()
+
+	if env == "staging" || env == "production" {
+		r.SetTrustedProxies(nil)
+		r.ForwardedByClientIP = true
+	}
 
 	// USER
 	// Public
