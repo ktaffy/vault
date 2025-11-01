@@ -7,7 +7,7 @@ const ENV = {
         apiUrl: 'https://medieval-jeanne-tormentingly.ngrok-free.dev',
     },
     staging: {
-        apiUrl: 'https://your-staging-backend-url.com', // Will be filled in after deploying backend
+        apiUrl: 'https://vault-production-b323.up.railway.app', // Will be filled in after deploying backend
     },
     production: {
         apiUrl: 'https://your-production-backend-url.com', // For future App Store release
