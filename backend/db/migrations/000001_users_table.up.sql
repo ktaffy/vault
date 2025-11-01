@@ -5,6 +5,8 @@ CREATE TABLE "users" (
     "password" VARCHAR(255) NOT NULL,
     "is_artist" BOOLEAN DEFAULT FALSE,
     "email_verified" BOOLEAN DEFAULT FALSE,
+    "profile_bio" TEXT,
+    "pfp_url" VARCHAR(500),
     "date_created" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     "last_login" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     "is_active" BOOLEAN DEFAULT TRUE
