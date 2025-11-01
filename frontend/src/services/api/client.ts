@@ -1,7 +1,8 @@
 import { clearAuth } from "../../store/slices/authSlice";
 import { store } from "../../store/store";
+import environment from "../../config/environment";
 
-const BASE_URL = 'https://medieval-jeanne-tormentingly.ngrok-free.dev'
+const BASE_URL = environment.apiUrl;
 
 interface RequestConfig {
     method: 'GET' | 'POST' | 'PUT' | 'DELETE';

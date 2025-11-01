@@ -1,39 +1,32 @@
 {
     "cli": {
-        "version": ">= 13.2.0"
+        "version": ">= 16.26.0"
     },
     "build": {
         "development": {
             "developmentClient": true,
             "distribution": "internal",
-            "android": {
-                "buildType": "apk",
-                "gradleCommand": ":app:assembleDebug"
-            },
             "ios": {
                 "buildConfiguration": "Debug"
             }
         },
-        "preview": {
-            "distribution": "internal",
-            "android": {
-                "buildType": "apk"
-            },
-            "ios": {
-                "simulator": false
-            }
-        },
-        "production": {
-            "android": {
-                "buildType": "apk"
-            },
+        "staging": {
+            "distribution": "store",
             "ios": {
                 "buildConfiguration": "Release"
-            }
+            },
+            "channel": "staging"
+        },
+        "production": {
+            "distribution": "store",
+            "ios": {
+                "buildConfiguration": "Release"
+            },
+            "channel": "production"
         }
     },
     "submit": {
-        "production": {
+        "staging": {
             "ios": {
                 "appleId": "kalebtafesse5@gmail.com",
                 "ascAppId": "6754779341",

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 
@@ -16,8 +17,18 @@ import (
 )
 
 func main() {
-	if err := godotenv.Load(); err != nil {
-		log.Fatalf("No .env file found or error loading it: %v", err)
+	env := os.Getenv("GO_ENV")
+	if env == "" {
+		env = "local" // default to local development
+	}
+	if env == "local" {
+		envFile := fmt.Sprintf(".env.%s", env)
+		if err := godotenv.Load(envFile); err != nil {
+			log.Fatalf("No %s file found or error loading it: %v", envFile, err)
+		}
+		log.Printf("Loaded environment from file: %s", env)
+	} else {
+		log.Printf("Running in %s environment - using system environment variables", env)
 	}
 	if err := util.InitS3(); err != nil {
 		log.Fatalf("Could not init S3: %v", err)

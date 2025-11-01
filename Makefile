@@ -11,7 +11,11 @@ end:
 	docker compose down
 
 server:
-	cd backend && go run cmd/main.go
+	cd backend && GO_ENV=local go run cmd/main.go
+
+server-staging:
+	cd backend && GO_ENV=staging go run cmd/main.go
+
 app-expo:
 	cd frontend && npx expo start --clear --tunnel
 
@@ -50,22 +54,13 @@ migrate-version:
 migrate-clean:
 	migrate -path $(MIGRATIONS_PATH) -database $(DB_URL) force $(version)
 
-build-dev-all:
-	cd frontend && eas build --platform all --profile development
-
-build-prod-all:
-	cd frontend && eas build --platform all --profile production
-
-build-dev-android:
-	cd frontend && eas build --platform android --profile development
-
-build-dev-ios:
+build-dev:
 	cd frontend && eas build --platform ios --profile development
 
-build-prod-android:
-	cd frontend && eas build --platform android --profile production
+build-staging:
+	cd frontend && eas build --platform ios --profile staging --auto-submit
 
-build-prod-ios:
+build-prod:
 	cd frontend && eas build --platform ios --profile production --auto-submit
 
-.PHONY: setup end postgres migrate-create migrate-up migrate-down migrate-version migrate-clean server db-table check-table clean-all-data app build-prod-all build-dev-all build-dev-android build-dev-ios build-prod-android build-prod-ios app-dev
+.PHONY: setup end postgres migrate-create migrate-up migrate-down migrate-version migrate-clean server db-table check-table clean-all-data app build-dev build-staging build-prod app-dev server-staging
