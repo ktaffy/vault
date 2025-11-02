@@ -61,11 +61,20 @@ const feedSlice = createSlice({
     initialState,
     reducers: {
         setCurrentIndex: (state, action: PayloadAction<number>) => {
-            state.currentIndex = action.payload;
+            const newIndex = action.payload;
+            if (newIndex < 0) {
+                state.currentIndex = 0;
+            } else if (newIndex >= state.snippets.length) {
+                state.currentIndex = Math.max(0, state.snippets.length - 1);
+            } else {
+                state.currentIndex = newIndex;
+            }
         },
         moveToNextSnippet: (state) => {
             if (state.currentIndex < state.snippets.length - 1) {
                 state.currentIndex += 1;
+            } else {
+                state.hasMore = state.snippets.length > 0;
             }
         },
         clearFeed: (state) => {
@@ -76,7 +85,12 @@ const feedSlice = createSlice({
         },
         removeCurrentSnippet: (state) => {
             state.snippets.splice(state.currentIndex, 1);
-            if (state.currentIndex >= state.snippets.length && state.snippets.length > 0) {
+            if (state.snippets.length === 0) {
+                state.currentIndex = 0;
+                state.hasMore = true;
+                return;
+            }
+            if (state.currentIndex >= state.snippets.length) {
                 state.currentIndex = state.snippets.length - 1;
             }
         },
