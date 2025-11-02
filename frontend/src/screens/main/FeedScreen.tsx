@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useCallback } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { View, StyleSheet, Animated, Dimensions } from 'react-native';
+import type { FeedSnippet } from '../../types/feed';
 import { audioCache } from '../../utils/audioCache';
 import { useTheme } from '../../hooks/useTheme';
 import { useFeed } from '../../hooks/useFeed';
@@ -37,11 +38,14 @@ export const FeedScreen = () => {
 
     const slideAnim = useRef(new Animated.Value(0)).current;
     const previousIndex = useRef(currentIndex);
-    const [displayedSnippet, setDisplayedSnippet] = React.useState(currentSnippet);
+    const [displayedSnippet, setDisplayedSnippet] = React.useState<FeedSnippet | null>(currentSnippet);
     const isAnimating = useRef(false);
 
     useEffect(() => {
         if (isAnimating.current) {
+            return;
+        }
+        if (!currentSnippet) {
             return;
         }
         if (previousIndex.current !== currentIndex && currentSnippet && displayedSnippet) {
@@ -69,6 +73,15 @@ export const FeedScreen = () => {
             setDisplayedSnippet(currentSnippet);
         }
     }, [currentIndex, currentSnippet, displayedSnippet]);
+
+    useEffect(() => {
+        if (!currentSnippet && displayedSnippet) {
+            setDisplayedSnippet(null);
+            slideAnim.setValue(0);
+            isAnimating.current = false;
+        }
+    }, [currentSnippet, displayedSnippet]);
+
     const handleSeek = (seekProgress: number) => {
         const seekTime = seekProgress * duration;
         seekTo(seekTime);

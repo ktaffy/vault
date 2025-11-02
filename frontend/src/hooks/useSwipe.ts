@@ -23,6 +23,10 @@ export const useSwipe = () => {
         if (!currentSnippet) {
             return;
         }
+        if (currentIndex >= snippets.length - 1 && snippets.length > 0) {
+            console.warn('Already at last snippet, cannot swipe');
+            return;
+        }
         const snippetId = currentSnippet.snippet_id;
         dispatch(moveToNextSnippet());
         swipeService.recordSwipe(snippetId, action).catch((err) => {
