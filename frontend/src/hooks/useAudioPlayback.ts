@@ -84,12 +84,10 @@ export const useAudioPlayback = (
     }, [audioUrl]);
 
     useEffect(() => {
-        if (autoPlay && !hasStarted.current) {
-            if (cachedPlayer || status.isLoaded) {
-                play();
-            }
+        if (autoPlay && !hasStarted.current && status.isLoaded && !status.isBuffering) {
+            play();
         }
-    }, [autoPlay, status.isLoaded, cachedPlayer]);
+    }, [autoPlay, status.isLoaded, status.isBuffering]);
 
     useEffect(() => {
         if (status.isLoaded && status.duration > 0) {
@@ -126,21 +124,26 @@ export const useAudioPlayback = (
     useEffect(() => {
         return () => {
             try {
-                if (player && status.isLoaded) {
+                if (player && player.playing) {
                     player.pause();
-                    setIsPlaying(false);
-                    hasStarted.current = false;
                 }
+                setIsPlaying(false);
+                hasStarted.current = false;
             } catch (error) {
-                // Ignore cleanup errors
+                // Player already destroyed, ignore
             }
         };
-    }, [audioUrl, status.isLoaded]);
+    }, [audioUrl]);
 
     const play = async () => {
         try {
             if (!status.isLoaded) {
                 setError(new Error('Audio not loaded'));
+                return;
+            }
+
+            if (status.isBuffering) {
+                console.warn('Audio still buffering, waiting...');
                 return;
             }
 
@@ -155,6 +158,7 @@ export const useAudioPlayback = (
         } catch (err) {
             setError(err as Error);
             setIsPlaying(false);
+            hasStarted.current = false;
         }
     };
 
