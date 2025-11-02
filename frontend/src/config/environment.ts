@@ -4,13 +4,13 @@ type Environment = 'development' | 'staging' | 'production';
 
 const ENV = {
     development: {
-        apiUrl: 'https://medieval-jeanne-tormentingly.ngrok-free.dev',
+        apiUrl: process.env.EXPO_PUBLIC_API_URL,
     },
     staging: {
-        apiUrl: 'https://vault-production-b323.up.railway.app', // Will be filled in after deploying backend
+        apiUrl: process.env.EXPO_PUBLIC_API_URL,
     },
     production: {
-        apiUrl: 'https://your-production-backend-url.com', // For future App Store release
+        apiUrl: process.env.EXPO_PUBLIC_API_URL, // For future App Store release
     },
 };
 
