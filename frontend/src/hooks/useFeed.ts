@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
     fetchNextSnippet,
@@ -20,6 +20,7 @@ export const useFeed = () => {
     const currentSnippet = useSelector(selectCurrentSnippet);
     const hasMore = useSelector(selectHasMore);
     const loading = useSelector(selectIsLoading);
+    const isFetching = useRef(false);
 
     const loadInitialFeed = useCallback(async () => {
         if (snippets.length === 0 && !loading) {
@@ -29,9 +30,14 @@ export const useFeed = () => {
 
     const checkAndLoadMore = useCallback(() => {
         const remainingSnippets = snippets.length - currentIndex;
-
-        if (remainingSnippets < 3 && hasMore && !loading) {
-            dispatch(fetchNextSnippet());
+        if (isFetching.current || !hasMore || loading) {
+            return;
+        }
+        if (remainingSnippets <= 5) {
+            isFetching.current = true;
+            dispatch(preloadSnippets(3)).finally(() => {
+                isFetching.current = false;
+            });
         }
     }, [snippets.length, currentIndex, hasMore, loading, dispatch]);
 
@@ -52,8 +58,11 @@ export const useFeed = () => {
     }, [loadInitialFeed]);
 
     useEffect(() => {
-        checkAndLoadMore();
-    }, [currentIndex]);
+        const timer = setTimeout(() => {
+            checkAndLoadMore();
+        }, 100);
+        return () => clearTimeout(timer);
+    }, [currentIndex, checkAndLoadMore]);
 
     return {
         snippets,
