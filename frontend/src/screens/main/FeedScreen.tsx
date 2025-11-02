@@ -38,31 +38,30 @@ export const FeedScreen = () => {
     const slideAnim = useRef(new Animated.Value(0)).current;
     const previousIndex = useRef(currentIndex);
     const [displayedSnippet, setDisplayedSnippet] = React.useState(currentSnippet);
+    const isAnimating = useRef(false);
 
     useEffect(() => {
+        if (isAnimating.current) {
+            return;
+        }
         if (previousIndex.current !== currentIndex && currentSnippet && displayedSnippet) {
             if (currentSnippet.snippet_id !== displayedSnippet.snippet_id) {
-                Animated.sequence([
-                    Animated.timing(slideAnim, {
-                        toValue: -SCREEN_WIDTH,
-                        duration: 250,
-                        useNativeDriver: true,
-                    }),
-                    Animated.timing(slideAnim, {
-                        toValue: SCREEN_WIDTH,
-                        duration: 0,
-                        useNativeDriver: true,
-                    }),
+                isAnimating.current = true;
+                Animated.timing(slideAnim, {
+                    toValue: -SCREEN_WIDTH,
+                    duration: 200,
+                    useNativeDriver: true,
+                }).start(() => {
+                    setDisplayedSnippet(currentSnippet);
+                    slideAnim.setValue(SCREEN_WIDTH);
                     Animated.timing(slideAnim, {
                         toValue: 0,
-                        duration: 250,
+                        duration: 200,
                         useNativeDriver: true,
-                    }),
-                ]).start();
-
-                setTimeout(() => {
-                    setDisplayedSnippet(currentSnippet);
-                }, 250);
+                    }).start(() => {
+                        isAnimating.current = false;
+                    });
+                });
             }
 
             previousIndex.current = currentIndex;
@@ -70,7 +69,6 @@ export const FeedScreen = () => {
             setDisplayedSnippet(currentSnippet);
         }
     }, [currentIndex, currentSnippet, displayedSnippet]);
-
     const handleSeek = (seekProgress: number) => {
         const seekTime = seekProgress * duration;
         seekTo(seekTime);
