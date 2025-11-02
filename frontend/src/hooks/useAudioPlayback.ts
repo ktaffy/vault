@@ -53,7 +53,15 @@ export const useAudioPlayback = (
     } = options;
 
     const newPlayer = useAudioPlayer(audioUrl);
-    const player = cachedPlayer || newPlayer;
+    const isValidCachedPlayer = cachedPlayer ? (() => {
+        try {
+            return cachedPlayer.playing !== undefined;
+        } catch {
+            return false;
+        }
+    })() : false;
+
+    const player = (isValidCachedPlayer ? cachedPlayer : newPlayer);
     const status = useAudioPlayerStatus(player);
 
     const [isPlaying, setIsPlaying] = useState(false);

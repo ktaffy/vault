@@ -30,6 +30,28 @@ class AudioCacheManager {
     forEach(callback: (player: any, url: string) => void) {
         this.cache.forEach(callback);
     }
+
+    cleanup() {
+        const deadUrls: string[] = [];
+
+        this.cache.forEach((player, url) => {
+            try {
+                if (player.playing === undefined) {
+                    deadUrls.push(url);
+                }
+            } catch (error) {
+                deadUrls.push(url);
+            }
+        });
+
+        deadUrls.forEach(url => {
+            this.cache.delete(url);
+        });
+
+        if (deadUrls.length > 0) {
+            console.log(`Cleaned up ${deadUrls.length} dead audio players`);
+        }
+    }
 }
 
 export const audioCache = new AudioCacheManager();

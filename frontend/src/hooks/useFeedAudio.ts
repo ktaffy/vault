@@ -30,20 +30,27 @@ export const useFeedAudio = () => {
 
     useEffect(() => {
         if (currentSnippet && currentSnippet.snippet_id !== previousSnippetId.current) {
+            audioCache.cleanup();
             audioCache.forEach((player, url) => {
                 if (url !== currentSnippet.audio_url) {
                     try {
-                        player.pause();
+                        if (player.playing) {
+                            player.pause();
+                        }
                     } catch (error) {
+                        console.error('Failed to pause player:', url, error);
                     }
                 }
             });
 
             if (cachedPlayer) {
                 try {
-                    cachedPlayer.pause();
+                    if (cachedPlayer.playing) {
+                        cachedPlayer.pause();
+                    }
                     cachedPlayer.seekTo(0);
                 } catch (error) {
+                    console.error('Failed to reset cached player:', error);
                 }
             }
 
