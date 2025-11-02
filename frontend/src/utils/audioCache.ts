@@ -1,11 +1,29 @@
 class AudioCacheManager {
     private cache: Map<string, any>;
+    private maxSize: number;
 
-    constructor() {
+    constructor(maxSize: number = 20) {
         this.cache = new Map();
+        this.maxSize = maxSize;
     }
 
     set(url: string, player: any) {
+        if (this.cache.size >= this.maxSize && !this.cache.has(url)) {
+            const firstEntry = this.cache.keys().next();
+            if (!firstEntry.done && firstEntry.value) {
+                const oldestUrl = firstEntry.value;
+                const oldestPlayer = this.cache.get(oldestUrl);
+                try {
+                    if (oldestPlayer && oldestPlayer.playing) {
+                        oldestPlayer.pause();
+                    }
+                } catch (error) {
+                    // Ignore errors from dead players
+                }
+                this.cache.delete(oldestUrl);
+            }
+        }
+        this.cache.delete(url);
         this.cache.set(url, player);
     }
 
