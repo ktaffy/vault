@@ -68,6 +68,12 @@ export const useAudioPlayback = (
     const [progress, setProgress] = useState(0);
     const [error, setError] = useState<Error | null>(null);
     const hasStarted = useRef(false);
+    const onProgressRef = useRef(onProgress);
+    const hasEnded = useRef(false);
+
+    useEffect(() => {
+        onProgressRef.current = onProgress;
+    }, [onProgress]);
 
     useEffect(() => {
         setupAudioMode();
@@ -89,6 +95,7 @@ export const useAudioPlayback = (
         setProgress(0);
         setIsPlaying(false);
         hasStarted.current = false;
+        hasEnded.current = false;
     }, [audioUrl]);
 
     useEffect(() => {
@@ -98,23 +105,24 @@ export const useAudioPlayback = (
     }, [autoPlay, status.isLoaded, status.isBuffering]);
 
     useEffect(() => {
-        if (status.isLoaded && status.duration > 0) {
+        if (status.isLoaded && status.duration > 0 && status.playing) {
             const currentProgress = calculateProgress(status.currentTime, status.duration);
             setProgress(currentProgress);
 
-            if (onProgress) {
-                onProgress(currentProgress);
+            if (onProgressRef.current) {
+                onProgressRef.current(currentProgress);
             }
         }
-    }, [status.currentTime, status.duration, onProgress]);
+    }, [status.currentTime, status.duration, status.playing]);
 
     useEffect(() => {
-        if (hasStarted.current && status.isLoaded && status.playing) {
+        if (hasStarted.current && status.isLoaded && !hasEnded.current) {
             const hasReachedEnd = endTime
                 ? status.currentTime >= endTime
-                : status.currentTime >= status.duration - 0.1;
+                : status.duration > 0 && status.currentTime >= status.duration - 0.5;
 
-            if (hasReachedEnd) {
+            if (hasReachedEnd && !hasEnded.current) {
+                hasEnded.current = true;
                 player.pause();
                 setIsPlaying(false);
                 hasStarted.current = false;
@@ -123,7 +131,7 @@ export const useAudioPlayback = (
                 }
             }
         }
-    }, [status.playing, status.isLoaded, status.currentTime, endTime, onEnd]);
+    }, [status.isLoaded, status.currentTime, endTime]);
 
     useEffect(() => {
         setIsPlaying(status.playing);
