@@ -8,7 +8,9 @@ export const secureStorage = {
         try {
             await SecureStore.setItemAsync(ACCESS_TOKEN_KEY, token);
         } catch (error) {
-            console.error('Error saving access token:', error);
+            if (__DEV__) {
+                console.error('Error saving access token:', error);
+            }
         }
     },
 
@@ -16,7 +18,9 @@ export const secureStorage = {
         try {
             return await SecureStore.getItemAsync(ACCESS_TOKEN_KEY);
         } catch (error) {
-            console.error('Error getting access token', error);
+            if (__DEV__) {
+                console.error('Error getting access token', error);
+            }
             return null;
         }
     },
@@ -25,7 +29,9 @@ export const secureStorage = {
         try {
             await SecureStore.deleteItemAsync(ACCESS_TOKEN_KEY);
         } catch (error) {
-            console.error('Error deleting access token:', error);
+            if (__DEV__) {
+                console.error('Error deleting access token:', error);
+            }
         }
     },
 
@@ -33,7 +39,9 @@ export const secureStorage = {
         try {
             await SecureStore.setItemAsync(USER_KEY, JSON.stringify(user));
         } catch (error) {
-            console.error('Error saving user:', error);
+            if (__DEV__) {
+                console.error('Error saving user:', error);
+            }
         }
     },
 
@@ -42,7 +50,9 @@ export const secureStorage = {
             const userJson = await SecureStore.getItemAsync(USER_KEY);
             return userJson ? JSON.parse(userJson) : null;
         } catch (error) {
-            console.error('Error getting user:', error);
+            if (__DEV__) {
+                console.error('Error getting user:', error);
+            }
             return null;
         }
     },
@@ -51,7 +61,9 @@ export const secureStorage = {
         try {
             await SecureStore.deleteItemAsync(USER_KEY);
         } catch (error) {
-            console.error('Error deleting user:', error);
+            if (__DEV__) {
+                console.error('Error deleting user:', error);
+            }
         }
     },
 };

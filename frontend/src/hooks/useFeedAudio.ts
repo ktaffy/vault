@@ -38,7 +38,7 @@ export const useFeedAudio = () => {
                             player.pause();
                         }
                     } catch (error) {
-                        console.error('Failed to pause player:', url, error);
+                        // Ignore - player may be destroyed
                     }
                 }
             });
@@ -50,7 +50,7 @@ export const useFeedAudio = () => {
                     }
                     cachedPlayer.seekTo(0);
                 } catch (error) {
-                    console.error('Failed to reset cached player:', error);
+                    // Ignore - player may be destroyed
                 }
             }
 

@@ -49,7 +49,7 @@ export const ProfileScreen = () => {
             const response = await swipeService.getLikedSnippets();
             setLikedSnippets(response.snippets || []);
         } catch (error) {
-            console.error('Failed to refresh liked snippets:', error);
+            // Failed to refresh, keep existing data
         } finally {
             setRefreshing(false);
         }
@@ -76,7 +76,6 @@ export const ProfileScreen = () => {
                 setEditError('');
             }
         } catch (error) {
-            console.error('Error picking image:', error);
             setEditError('Failed to pick image');
         }
     };
@@ -148,10 +147,7 @@ export const ProfileScreen = () => {
                     name: filename || 'profile.jpg',
                 };
             }
-
-            console.log('Sending update data:', updateData);
             const response = await authService.updateProfile(updateData);
-
             dispatch(updateUserProfile({
                 username: response.user.username,
                 email: response.user.email,
@@ -196,7 +192,9 @@ export const ProfileScreen = () => {
                 const response = await swipeService.getLikedSnippets();
                 setLikedSnippets(response.snippets || []);
             } catch (error) {
-                console.error('Failed to fetch liked snippets:', error);
+                if (__DEV__){
+                    console.error('Failed to fetch liked snippets:', error);
+                }
             } finally {
                 setLoadingSnippets(false);
             }

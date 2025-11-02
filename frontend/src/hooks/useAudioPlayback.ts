@@ -159,7 +159,6 @@ export const useAudioPlayback = (
             }
 
             if (status.isBuffering) {
-                console.warn('Audio still buffering, waiting...');
                 return;
             }
 

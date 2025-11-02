@@ -10,7 +10,9 @@ import { audioCache } from '../../utils/audioCache';
 
 setAudioModeAsync({
     playsInSilentMode: true,
-}).catch(console.error);
+}).catch(() => {
+    // Audio mode setup failed, continue anyway
+});
 
 
 const PreloadAudio: React.FC<{ audioUrl: string }> = ({ audioUrl }) => {
@@ -40,7 +42,9 @@ export const DashboardScreen = () => {
             const response = await snippetService.getAllArtistSnippets();
             setSnippets(response.snippets || []);
         } catch (error) {
-            console.error('Failed to fetch snippets:', error);
+            if (__DEV__) {
+                console.error('Failed to fetch snippets:', error);
+            }
         } finally {
             setLoading(false);
         }

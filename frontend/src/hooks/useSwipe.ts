@@ -24,13 +24,11 @@ export const useSwipe = () => {
             return;
         }
         if (currentIndex >= snippets.length - 1 && snippets.length > 0) {
-            console.warn('Already at last snippet, cannot swipe');
             return;
         }
         const snippetId = currentSnippet.snippet_id;
         dispatch(moveToNextSnippet());
         swipeService.recordSwipe(snippetId, action).catch((err) => {
-            console.error('Failed to record swipe:', err);
             // Could add retry logic here if needed
         });
         const remainingSnippets = snippets.length - currentIndex - 1;

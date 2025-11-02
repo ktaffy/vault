@@ -101,7 +101,9 @@ export const StatsScreen = () => {
             const data = await snippetService.getById(snippetId);
             setSnippet(data);
         } catch (error) {
-            console.error('Failed to fetch snippet:', error);
+            if (__DEV__) {
+                console.error('Failed to fetch snippet:', error);
+            }
         } finally {
             setLoading(false);
         }
@@ -121,7 +123,9 @@ export const StatsScreen = () => {
             showToast('Snippet deleted successfully', 'success');
             router.back();
         } catch (error: any) {
-            console.error('Failed to delete snippet:', error);
+            if (__DEV__) {
+                console.error('Failed to delete snippet:', error);
+            }
             showToast(error.message || 'Failed to delete snippet', 'error');
             setDeleting(false);
             setShowDeleteConfirm(false);

@@ -15,7 +15,9 @@ export const decodeToken = (token: string): { id: string; username: string } | n
             username: decoded.username,
         };
     } catch (error) {
-        console.error('Failed to decode token:', error);
+        if (__DEV__) {
+            console.error('Failed to decode token:', error);
+        }
         return null;
     }
 };

@@ -65,10 +65,6 @@ class AudioCacheManager {
         deadUrls.forEach(url => {
             this.cache.delete(url);
         });
-
-        if (deadUrls.length > 0) {
-            console.log(`Cleaned up ${deadUrls.length} dead audio players`);
-        }
     }
 }
 
