@@ -76,11 +76,7 @@ export const SnippetCard: React.FC<SnippetCardProps> = ({
     }, [snippet.snippet_id]);
 
     useEffect(() => {
-        Animated.timing(animatedProgress, {
-            toValue: progress,
-            duration: 100,
-            useNativeDriver: false,
-        }).start();
+        animatedProgress.setValue(progress);
     }, [progress]);
 
     useEffect(() => {

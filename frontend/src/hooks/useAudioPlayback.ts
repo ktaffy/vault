@@ -105,15 +105,18 @@ export const useAudioPlayback = (
     }, [autoPlay, status.isLoaded, status.isBuffering]);
 
     useEffect(() => {
-        if (status.isLoaded && status.duration > 0 && status.playing) {
-            const currentProgress = calculateProgress(status.currentTime, status.duration);
-            setProgress(currentProgress);
-
-            if (onProgressRef.current) {
-                onProgressRef.current(currentProgress);
-            }
+        if (status.isLoaded && status.duration > 0) {
+            const actualProgress = calculateProgress(status.currentTime, status.duration);
+            setProgress(prev => {
+                const drift = Math.abs(actualProgress - prev);
+                const driftThreshold = 0.1 / status.duration; 
+                if (drift > driftThreshold) {
+                    return actualProgress;
+                }
+                return prev;
+            });
         }
-    }, [status.currentTime, status.duration, status.playing]);
+    }, [status.currentTime, status.duration, status.isLoaded]);
 
     useEffect(() => {
         if (hasStarted.current && status.isLoaded && !hasEnded.current) {
@@ -150,6 +153,44 @@ export const useAudioPlayback = (
             }
         };
     }, [audioUrl]);
+
+    useEffect(() => {
+        if (!isPlaying || !status.isLoaded || status.duration === 0) {
+            return;
+        }
+
+        let animationFrameId: number;
+        let lastUpdateTime = Date.now();
+
+        const animate = () => {
+            const now = Date.now();
+            const deltaTime = (now - lastUpdateTime) / 1000;
+            lastUpdateTime = now;
+
+            setProgress(prev => {
+                const newProgress = prev + (deltaTime / status.duration);
+                const clampedProgress = Math.min(Math.max(newProgress, 0), 1);
+
+                return clampedProgress;
+            });
+
+            animationFrameId = requestAnimationFrame(animate);
+        };
+
+        animationFrameId = requestAnimationFrame(animate);
+
+        return () => {
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+            }
+        };
+    }, [isPlaying, status.isLoaded, status.duration]);
+
+    useEffect(() => {
+        if (onProgressRef.current) {
+            onProgressRef.current(progress);
+        }
+    }, [progress]);
 
     const play = async () => {
         try {
