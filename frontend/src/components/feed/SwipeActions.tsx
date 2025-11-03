@@ -1,5 +1,6 @@
 import React, { useRef } from 'react';
 import { View, StyleSheet, Pressable, Animated } from 'react-native';
+import { useHaptics } from '../../hooks/useHaptics';
 import { Ionicons } from '@expo/vector-icons';
 
 interface SwipeActionsProps {
@@ -15,6 +16,7 @@ export const SwipeActions: React.FC<SwipeActionsProps> = ({
 }) => {
     const fireScale = useRef(new Animated.Value(1)).current;
     const skipScale = useRef(new Animated.Value(1)).current;
+    const { fireButton, skipButton } = useHaptics();
 
     const animateButton = (scale: Animated.Value, callback: () => void) => {
         Animated.sequence([
@@ -35,11 +37,13 @@ export const SwipeActions: React.FC<SwipeActionsProps> = ({
 
     const handleFire = () => {
         if (disabled) return;
+        fireButton();
         animateButton(fireScale, onFire);
     };
 
     const handleSkip = () => {
         if (disabled) return;
+        skipButton();
         animateButton(skipScale, onSkip);
     };
 
