@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { View, Text, StyleSheet, Pressable, FlatList, ActivityIndicator, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useScreenSetup } from '../../hooks/useScreenSetup';
@@ -36,6 +36,9 @@ export const DashboardScreen = () => {
     const [playingSnippetId, setPlayingSnippetId] = useState<number | null>(null);
     const [currentPlayer, setCurrentPlayer] = useState<any>(null);
     const [audioProgress, setAudioProgress] = useState(0);
+    const justStartedPlaying = useRef(false);
+    const [displayProgress, setDisplayProgress] = useState(0);
+    const overrideProgress = useRef(false);
 
     const fetchSnippets = async () => {
         try {
@@ -50,6 +53,14 @@ export const DashboardScreen = () => {
         }
     };
 
+    const handleProgressUpdate = useCallback((progress: number) => {
+        if (justStartedPlaying.current) {
+            justStartedPlaying.current = false;
+            return;
+        }
+        setAudioProgress(progress);
+    }, []);
+
     const handlePlayPause = (snippet: Snippet, e: any) => {
         e.stopPropagation();
 
@@ -57,18 +68,29 @@ export const DashboardScreen = () => {
             setPlayingSnippetId(null);
             setCurrentPlayer(null);
             setAudioProgress(0);
+            setDisplayProgress(0);
+            overrideProgress.current = false;
         } else {
             if (currentPlayer) {
                 setPlayingSnippetId(null);
                 setCurrentPlayer(null);
                 setAudioProgress(0);
             }
-
             setPlayingSnippetId(snippet.id);
             setCurrentPlayer(snippet);
-            setAudioProgress(0);
+            setDisplayProgress(0);
+            overrideProgress.current = true;
+            setTimeout(() => {
+                overrideProgress.current = false;
+            }, 200);
         }
     };
+
+    useEffect(() => {
+        if (!overrideProgress.current) {
+            setDisplayProgress(audioProgress);
+        }
+    }, [audioProgress]);
 
     useEffect(() => {
         fetchSnippets();
@@ -121,7 +143,7 @@ export const DashboardScreen = () => {
                         setPlayingSnippetId(null);
                         setAudioProgress(0);
                     }}
-                    onProgress={setAudioProgress}
+                    onProgress={handleProgressUpdate}
                 />
             )}
 
@@ -186,7 +208,7 @@ export const DashboardScreen = () => {
                                 onPress={() => router.push(`/(tabs)/artist/stats/${item.id}`)}
                                 isPlaying={playingSnippetId === item.id}
                                 onPlayPause={(e) => handlePlayPause(item, e)}
-                                progress={playingSnippetId === item.id ? audioProgress : 0}
+                                progress={playingSnippetId === item.id ? displayProgress : 0}
                             />
                         )}
                         contentContainerStyle={styles.snippetsList}
@@ -322,6 +344,7 @@ const AudioPlayerComponent: React.FC<{
     });
 
     useEffect(() => {
+        // Pause all other players
         audioCache.forEach((player, url) => {
             if (url !== snippet.audio_url) {
                 try {
@@ -331,12 +354,17 @@ const AudioPlayerComponent: React.FC<{
             }
         });
 
+        // Important: Set progress to 0 immediately BEFORE starting playback
+        onProgress(0);
+
         if (cachedPlayer) {
             try {
                 cachedPlayer.seekTo(0);
-                cachedPlayer.play();
+                // Small delay to ensure seek completes before playing
+                setTimeout(() => {
+                    cachedPlayer.play();
+                }, 50);
             } catch (error) {
-                console.error('Cached player error:', error);
             }
         } else if (isLoaded) {
             play();

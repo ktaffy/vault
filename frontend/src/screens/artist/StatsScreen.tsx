@@ -33,6 +33,8 @@ export const StatsScreen = () => {
     const [deleting, setDeleting] = useState(false);
     const [isPlaying, setIsPlaying] = useState(false);
     const [audioProgress, setAudioProgress] = useState(0);
+    const [displayProgress, setDisplayProgress] = useState(0);
+    const overrideProgress = useRef(false);
     const scaleAnim = useRef(new Animated.Value(0)).current;
     const fadeAnim = useRef(new Animated.Value(0)).current;
 
@@ -110,11 +112,28 @@ export const StatsScreen = () => {
     };
 
     const handlePlayPause = () => {
-        setIsPlaying(!isPlaying);
-        if (isPlaying) {
+        const newIsPlaying = !isPlaying;
+        setIsPlaying(newIsPlaying);
+
+        if (!newIsPlaying) {
             setAudioProgress(0);
+            setDisplayProgress(0);
+            overrideProgress.current = false;
+        } else {
+            setDisplayProgress(0);
+            overrideProgress.current = true;
+
+            setTimeout(() => {
+                overrideProgress.current = false;
+            }, 200);
         }
     };
+
+    useEffect(() => {
+        if (!overrideProgress.current) {
+            setDisplayProgress(audioProgress);
+        }
+    }, [audioProgress]);
 
     const handleDelete = async () => {
         setDeleting(true);
@@ -305,13 +324,13 @@ export const StatsScreen = () => {
                             <View style={[styles.progressTrack, { backgroundColor: theme.colors.border }]}>
                                 <View
                                     style={[styles.progressFill, {
-                                        width: `${audioProgress * 100}%`,
+                                        width: `${displayProgress * 100}%`,
                                         backgroundColor: theme.colors.primary
                                     }]}
                                 />
                             </View>
                             <Text style={[styles.progressTime, { color: theme.colors.textSecondary }]}>
-                                {formatTime(audioProgress * 15)} / 0:15
+                                {formatTime(displayProgress * 15)} / 0:15
                             </Text>
                         </View>
                     </View>

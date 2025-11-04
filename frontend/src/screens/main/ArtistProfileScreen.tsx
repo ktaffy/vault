@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
     View,
     Text,
@@ -53,6 +53,8 @@ export const ArtistProfileScreen: React.FC<ArtistProfileScreenProps> = ({ artist
     const [playingSnippetId, setPlayingSnippetId] = useState<number | null>(null);
     const [currentPlayer, setCurrentPlayer] = useState<any>(null);
     const [audioProgress, setAudioProgress] = useState(0);
+    const [displayProgress, setDisplayProgress] = useState(0);
+    const overrideProgress = useRef(false);
 
     useEffect(() => {
         fetchArtistData();
@@ -118,17 +120,29 @@ export const ArtistProfileScreen: React.FC<ArtistProfileScreenProps> = ({ artist
             setPlayingSnippetId(null);
             setCurrentPlayer(null);
             setAudioProgress(0);
+            setDisplayProgress(0);
+            overrideProgress.current = false;
         } else {
             if (currentPlayer) {
                 setPlayingSnippetId(null);
                 setCurrentPlayer(null);
                 setAudioProgress(0);
             }
-
             setPlayingSnippetId(snippet.id);
             setCurrentPlayer(snippet);
+            setDisplayProgress(0);
+            overrideProgress.current = true;
+            setTimeout(() => {
+                overrideProgress.current = false;
+            }, 200);
         }
     };
+
+    useEffect(() => {
+        if (!overrideProgress.current) {
+            setDisplayProgress(audioProgress);
+        }
+    }, [audioProgress]);
 
     if (loading) {
         return (
@@ -316,7 +330,7 @@ export const ArtistProfileScreen: React.FC<ArtistProfileScreenProps> = ({ artist
                                     isPlaying={playingSnippetId === snippet.id}
                                     onPlay={() => handlePlaySnippet(snippet)}
                                     theme={theme}
-                                    progress={playingSnippetId === snippet.id ? audioProgress : 0}
+                                    progress={playingSnippetId === snippet.id ? displayProgress : 0}
                                 />
                             ))}
                         </View>
