@@ -1,5 +1,6 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, Animated, Pressable, Image } from 'react-native';
+import Slider from '@react-native-community/slider';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
@@ -67,6 +68,8 @@ export const SnippetCard: React.FC<SnippetCardProps> = ({
     const previousSnippetId = useRef(snippet.snippet_id);
     const pulseAnim = useRef(new Animated.Value(1)).current;
     const glowAnim = useRef(new Animated.Value(0)).current;
+    const [isSeeking, setIsSeeking] = useState(false);
+    const [seekValue, setSeekValue] = useState(0);
 
     useEffect(() => {
         if (previousSnippetId.current !== snippet.snippet_id) {
@@ -76,8 +79,10 @@ export const SnippetCard: React.FC<SnippetCardProps> = ({
     }, [snippet.snippet_id]);
 
     useEffect(() => {
-        animatedProgress.setValue(progress);
-    }, [progress]);
+        if (!isSeeking) {
+            animatedProgress.setValue(progress);
+        }
+    }, [progress, isSeeking]);
 
     useEffect(() => {
         if (isPlaying) {
@@ -117,16 +122,21 @@ export const SnippetCard: React.FC<SnippetCardProps> = ({
         }
     }, [isPlaying]);
 
-    const handleProgressBarPress = (event: any) => {
-        if (!onSeek) return;
+    const handleSlidingStart = () => {
+        setIsSeeking(true);
+    };
 
-        const { locationX } = event.nativeEvent;
-        const { width } = event.nativeEvent.target.measure
-            ? event.nativeEvent.target
-            : { width: event.nativeEvent.target.offsetWidth };
+    const handleSlidingComplete = (value: number) => {
+        if (onSeek) {
+            onSeek(value);
+        }
+        setTimeout(() => {
+            setIsSeeking(false);
+        }, 100);
+    };
 
-        const newProgress = locationX / event.currentTarget.offsetWidth;
-        onSeek(Math.max(0, Math.min(1, newProgress)));
+    const handleValueChange = (value: number) => {
+        setSeekValue(value);
     };
 
     return (
@@ -236,38 +246,20 @@ export const SnippetCard: React.FC<SnippetCardProps> = ({
                 {/* Bottom Section - Snippet Info */}
                 <View style={styles.bottomSection}>
                     {/* Interactive Progress Bar */}
-                    <Pressable
-                        style={styles.progressContainer}
-                        onPress={handleProgressBarPress}
-                    >
-                        <View style={styles.progressBar}>
-                            <Animated.View
-                                style={[
-                                    styles.progressFill,
-                                    {
-                                        width: animatedProgress.interpolate({
-                                            inputRange: [0, 1],
-                                            outputRange: ['0%', '100%'],
-                                        }),
-                                        backgroundColor: theme.colors.primary
-                                    }
-                                ]}
-                            />
-                            {/* Draggable Thumb */}
-                            <Animated.View
-                                style={[
-                                    styles.progressThumb,
-                                    {
-                                        left: animatedProgress.interpolate({
-                                            inputRange: [0, 1],
-                                            outputRange: ['0%', '100%'],
-                                        }),
-                                        backgroundColor: theme.colors.primary,
-                                    }
-                                ]}
-                            />
-                        </View>
-                    </Pressable>
+                    <View style={styles.progressContainer}>
+                        <Slider
+                            style={styles.slider}
+                            minimumValue={0}
+                            maximumValue={1}
+                            value={isSeeking ? seekValue : progress}
+                            onSlidingStart={handleSlidingStart}
+                            onValueChange={handleValueChange}
+                            onSlidingComplete={handleSlidingComplete}
+                            minimumTrackTintColor={theme.colors.primary}
+                            maximumTrackTintColor="rgba(255, 255, 255, 0.2)"
+                            thumbTintColor={theme.colors.primary}
+                        />
+                    </View>
 
                     {/* Snippet Details */}
                     <View style={styles.infoSection}>
@@ -379,6 +371,10 @@ const styles = StyleSheet.create({
     progressContainer: {
         width: '100%',
         paddingVertical: 10,
+    },
+    slider: {
+        width: '100%',
+        height: 10,
     },
     progressBar: {
         height: 3,
