@@ -4,16 +4,267 @@ import Slider from '@react-native-community/slider';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
 import type { FeedSnippet } from '../../types/feed';
 import { useRouter } from 'expo-router';
 
-interface SnippetCardProps {
-    snippet: FeedSnippet;
+interface PlayPauseButtonProps {
     isPlaying: boolean;
-    progress: number;
-    onSeek?: (progress: number) => void;
-    onTogglePlayPause?: () => void;
+    onPress?: () => void;
+    pulseAnim: Animated.Value;
 }
+
+const PlayPauseButton: React.FC<PlayPauseButtonProps> = ({
+    isPlaying,
+    onPress,
+    pulseAnim
+}) => {
+    const prefersReducedMotion = useReducedMotion();
+    const buttonScale = useRef(new Animated.Value(1)).current;
+    const iconScale = useRef(new Animated.Value(1)).current;
+    const particle1 = {
+        translateX: useRef(new Animated.Value(0)).current,
+        translateY: useRef(new Animated.Value(0)).current,
+        opacity: useRef(new Animated.Value(0)).current,
+        scale: useRef(new Animated.Value(0)).current,
+    };
+    const particle2 = {
+        translateX: useRef(new Animated.Value(0)).current,
+        translateY: useRef(new Animated.Value(0)).current,
+        opacity: useRef(new Animated.Value(0)).current,
+        scale: useRef(new Animated.Value(0)).current,
+    };
+    const particle3 = {
+        translateX: useRef(new Animated.Value(0)).current,
+        translateY: useRef(new Animated.Value(0)).current,
+        opacity: useRef(new Animated.Value(0)).current,
+        scale: useRef(new Animated.Value(0)).current,
+    };
+    const particle4 = {
+        translateX: useRef(new Animated.Value(0)).current,
+        translateY: useRef(new Animated.Value(0)).current,
+        opacity: useRef(new Animated.Value(0)).current,
+        scale: useRef(new Animated.Value(0)).current,
+    };
+    const ringScale = useRef(new Animated.Value(1)).current;
+    const ringOpacity = useRef(new Animated.Value(0)).current;
+
+    const handlePressIn = () => {
+        if (prefersReducedMotion) return;
+        Animated.spring(buttonScale, {
+            toValue: 0.88,
+            friction: 6,
+            tension: 150,
+            useNativeDriver: true,
+        }).start();
+        Animated.spring(iconScale, {
+            toValue: 0.82,
+            friction: 6,
+            tension: 150,
+            useNativeDriver: true,
+        }).start();
+    };
+
+    const handlePressOut = () => {
+        if (prefersReducedMotion) return;
+        Animated.spring(buttonScale, {
+            toValue: 1,
+            friction: 5,
+            tension: 120,
+            useNativeDriver: true,
+        }).start();
+        Animated.sequence([
+            Animated.spring(iconScale, {
+                toValue: 1.18,
+                friction: 4,
+                tension: 180,
+                useNativeDriver: true,
+            }),
+            Animated.spring(iconScale, {
+                toValue: 1,
+                friction: 6,
+                tension: 120,
+                useNativeDriver: true,
+            }),
+        ]).start();
+        triggerParticleBurst();
+        triggerRingPulse();
+    };
+
+    const triggerParticleBurst = () => {
+        const particles = [particle1, particle2, particle3, particle4];
+        const directions = [
+            { x: -60, y: -60 },
+            { x: 60, y: -60 },
+            { x: -60, y: 60 },
+            { x: 60, y: 60 },
+        ];
+
+        particles.forEach((particle, index) => {
+            particle.translateX.setValue(0);
+            particle.translateY.setValue(0);
+            particle.opacity.setValue(0.8);
+            particle.scale.setValue(1);
+
+            const direction = directions[index];
+
+            Animated.parallel([
+                Animated.timing(particle.translateX, {
+                    toValue: direction.x,
+                    duration: 500,
+                    useNativeDriver: true,
+                }),
+                Animated.timing(particle.translateY, {
+                    toValue: direction.y,
+                    duration: 500,
+                    useNativeDriver: true,
+                }),
+                Animated.timing(particle.opacity, {
+                    toValue: 0,
+                    duration: 500,
+                    useNativeDriver: true,
+                }),
+                Animated.timing(particle.scale, {
+                    toValue: 0.3,
+                    duration: 500,
+                    useNativeDriver: true,
+                }),
+            ]).start();
+        });
+    };
+
+    const triggerRingPulse = () => {
+        ringScale.setValue(1);
+        ringOpacity.setValue(0.6);
+        Animated.parallel([
+            Animated.timing(ringScale, {
+                toValue: 1.8,
+                duration: 600,
+                useNativeDriver: true,
+            }),
+            Animated.timing(ringOpacity, {
+                toValue: 0,
+                duration: 600,
+                useNativeDriver: true,
+            }),
+        ]).start();
+    };
+
+    return (
+        <Animated.View
+            style={{
+                transform: [{ scale: buttonScale }],
+            }}
+        >
+            <Pressable
+                style={styles.playPauseContainer}
+                onPressIn={handlePressIn}
+                onPressOut={handlePressOut}
+                onPress={onPress}
+            >
+                {/* Ring pulse effect */}
+                {!prefersReducedMotion && (
+                    <Animated.View
+                        style={[
+                            styles.ringPulse,
+                            {
+                                transform: [{ scale: ringScale }],
+                                opacity: ringOpacity,
+                            },
+                        ]}
+                        pointerEvents="none"
+                    />
+                )}
+
+                {/* Particle burst effects */}
+                {!prefersReducedMotion && (
+                    <>
+                        {/* Particle 1 - Top Left */}
+                        <Animated.View
+                            style={[
+                                styles.particle,
+                                {
+                                    transform: [
+                                        { translateX: particle1.translateX },
+                                        { translateY: particle1.translateY },
+                                        { scale: particle1.scale },
+                                    ],
+                                    opacity: particle1.opacity,
+                                },
+                            ]}
+                            pointerEvents="none"
+                        />
+                        {/* Particle 2 - Top Right */}
+                        <Animated.View
+                            style={[
+                                styles.particle,
+                                {
+                                    transform: [
+                                        { translateX: particle2.translateX },
+                                        { translateY: particle2.translateY },
+                                        { scale: particle2.scale },
+                                    ],
+                                    opacity: particle2.opacity,
+                                },
+                            ]}
+                            pointerEvents="none"
+                        />
+                        {/* Particle 3 - Bottom Left */}
+                        <Animated.View
+                            style={[
+                                styles.particle,
+                                {
+                                    transform: [
+                                        { translateX: particle3.translateX },
+                                        { translateY: particle3.translateY },
+                                        { scale: particle3.scale },
+                                    ],
+                                    opacity: particle3.opacity,
+                                },
+                            ]}
+                            pointerEvents="none"
+                        />
+                        {/* Particle 4 - Bottom Right */}
+                        <Animated.View
+                            style={[
+                                styles.particle,
+                                {
+                                    transform: [
+                                        { translateX: particle4.translateX },
+                                        { translateY: particle4.translateY },
+                                        { scale: particle4.scale },
+                                    ],
+                                    opacity: particle4.opacity,
+                                },
+                            ]}
+                            pointerEvents="none"
+                        />
+                    </>
+                )}
+
+                {/* Playing State - Sound Bars */}
+                {isPlaying ? (
+                    <View style={styles.playingIndicator}>
+                        <AnimatedSoundBar delay={0} />
+                        <AnimatedSoundBar delay={200} />
+                        <AnimatedSoundBar delay={400} />
+                    </View>
+                ) : (
+                    /* Paused State - Play Icon */
+                    <Animated.View
+                        style={{
+                            transform: [{ scale: iconScale }],
+                        }}
+                    >
+                        <View style={styles.pausedIndicator}>
+                            <Ionicons name="play" size={48} color="#9B59D0" />
+                        </View>
+                    </Animated.View>
+                )}
+            </Pressable>
+        </Animated.View>
+    );
+};
 
 const AnimatedSoundBar: React.FC<{ delay: number }> = ({ delay }) => {
     const animation = useRef(new Animated.Value(0.4)).current;
@@ -54,6 +305,14 @@ const AnimatedSoundBar: React.FC<{ delay: number }> = ({ delay }) => {
         />
     );
 };
+
+interface SnippetCardProps {
+    snippet: FeedSnippet;
+    isPlaying: boolean;
+    progress: number;
+    onSeek?: (progress: number) => void;
+    onTogglePlayPause?: () => void;
+}
 
 export const SnippetCard: React.FC<SnippetCardProps> = ({
     snippet,
@@ -226,22 +485,13 @@ export const SnippetCard: React.FC<SnippetCardProps> = ({
                 </View>
 
                 {/* Center - Playing Indicator (Now Interactive) */}
-                <Pressable
-                    style={styles.centerSection}
-                    onPress={onTogglePlayPause}
-                >
-                    {isPlaying ? (
-                        <View style={styles.playingIndicator}>
-                            <AnimatedSoundBar delay={0} />
-                            <AnimatedSoundBar delay={200} />
-                            <AnimatedSoundBar delay={400} />
-                        </View>
-                    ) : (
-                        <View style={styles.pausedIndicator}>
-                            <Ionicons name="play" size={48} color="#9B59D0" />
-                        </View>
-                    )}
-                </Pressable>
+                <View style={styles.centerSection}>
+                    <PlayPauseButton
+                        isPlaying={isPlaying}
+                        onPress={onTogglePlayPause}
+                        pulseAnim={pulseAnim}
+                    />
+                </View>
 
                 {/* Bottom Section - Snippet Info */}
                 <View style={styles.bottomSection}>
@@ -452,5 +702,33 @@ const styles = StyleSheet.create({
     pausedIndicator: {
         justifyContent: 'center',
         alignItems: 'center',
+    },
+    playPauseContainer: {
+        width: 160,
+        height: 160,
+        borderRadius: 80,
+        justifyContent: 'center',
+        alignItems: 'center',
+        position: 'relative',
+        overflow: 'visible',
+    },
+    ringPulse: {
+        position: 'absolute',
+        width: 160,
+        height: 160,
+        borderRadius: 80,
+        borderWidth: 3,
+        borderColor: '#9B59D0',
+    },
+    particle: {
+        position: 'absolute',
+        width: 12,
+        height: 12,
+        borderRadius: 6,
+        backgroundColor: '#9B59D0',
+        shadowColor: '#9B59D0',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.8,
+        shadowRadius: 8,
     },
 });

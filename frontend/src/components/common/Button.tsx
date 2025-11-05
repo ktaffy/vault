@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import {
     TouchableOpacity,
     Text,
@@ -7,8 +7,12 @@ import {
     TouchableOpacityProps,
     ViewStyle,
     TextStyle,
+    Animated,
+    View
 } from 'react-native';
 import { useTheme } from '../../hooks/useTheme';
+import { useHaptics } from '../../hooks/useHaptics';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
 
 interface ButtonProps extends TouchableOpacityProps {
     title: string;
@@ -29,6 +33,72 @@ export const Button: React.FC<ButtonProps> = ({
     ...props
 }) => {
     const { theme } = useTheme();
+    const prefersReducedMotion = useReducedMotion();
+    const { buttonPress } = useHaptics();
+
+    const scaleAnim = useRef(new Animated.Value(1)).current;
+
+    const ripple1Scale = useRef(new Animated.Value(0)).current;
+    const ripple1Opacity = useRef(new Animated.Value(0)).current;
+    const ripple2Scale = useRef(new Animated.Value(0)).current;
+    const ripple2Opacity = useRef(new Animated.Value(0)).current;
+
+    const handlePressIn = () => {
+        if (prefersReducedMotion || disabled || loading) return;
+        buttonPress();
+        Animated.spring(scaleAnim, {
+            toValue: 0.95,
+            friction: 7,
+            tension: 120,
+            useNativeDriver: true,
+        }).start();
+    };
+
+    const handlePressOut = () => {
+        if (prefersReducedMotion || disabled || loading) return;
+        Animated.spring(scaleAnim, {
+            toValue: 1,
+            friction: 7,
+            tension: 120,
+            useNativeDriver: true,
+        }).start();
+        if (variant === 'primary') {
+            triggerRipple();
+        }
+    };
+
+    const triggerRipple = () => {
+        ripple1Scale.setValue(0);
+        ripple1Opacity.setValue(0.4);
+        ripple2Scale.setValue(0);
+        ripple2Opacity.setValue(0.3);
+        Animated.parallel([
+            Animated.timing(ripple1Scale, {
+                toValue: 2,
+                duration: 600,
+                useNativeDriver: true,
+            }),
+            Animated.timing(ripple1Opacity, {
+                toValue: 0,
+                duration: 600,
+                useNativeDriver: true,
+            }),
+        ]).start();
+        setTimeout(() => {
+            Animated.parallel([
+                Animated.timing(ripple2Scale, {
+                    toValue: 2,
+                    duration: 600,
+                    useNativeDriver: true,
+                }),
+                Animated.timing(ripple2Opacity, {
+                    toValue: 0,
+                    duration: 600,
+                    useNativeDriver: true,
+                }),
+            ]).start();
+        }, 100);
+    };
 
     const getButtonStyle = (): ViewStyle[] => {
         const baseStyle: ViewStyle[] = [styles.button];
@@ -40,11 +110,6 @@ export const Button: React.FC<ButtonProps> = ({
         if (variant === 'primary') {
             baseStyle.push({
                 backgroundColor: theme.colors.primary,
-                shadowColor: theme.colors.primary,
-                shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.3,
-                shadowRadius: 8,
-                elevation: 4,
             });
         } else if (variant === 'secondary') {
             baseStyle.push({
@@ -65,7 +130,6 @@ export const Button: React.FC<ButtonProps> = ({
         }
 
         if (fullWidth) baseStyle.push(styles.fullWidth);
-
         if (disabled || loading) baseStyle.push(styles.disabled);
 
         return baseStyle;
@@ -90,21 +154,72 @@ export const Button: React.FC<ButtonProps> = ({
     };
 
     return (
-        <TouchableOpacity
-            style={[...getButtonStyle(), style]}
-            disabled={disabled || loading}
-            activeOpacity={0.8}
-            {...props}
+        <Animated.View
+            style={[
+                {
+                    transform: [{ scale: scaleAnim }],
+                    width: fullWidth ? '100%' : undefined,
+                },
+            ]}
         >
-            {loading ? (
-                <ActivityIndicator
-                    size="small"
-                    color={variant === 'primary' ? '#ffffff' : theme.colors.primary}
-                />
-            ) : (
-                <Text style={getTextStyle()}>{title}</Text>
-            )}
-        </TouchableOpacity>
+            <TouchableOpacity
+                style={[
+                    ...getButtonStyle(),
+                    variant === 'primary' && {
+                        shadowColor: theme.colors.primary,
+                        shadowOffset: { width: 0, height: 4 },
+                        shadowOpacity: 0.3,
+                        shadowRadius: 8,
+                        elevation: 4,
+                    },
+                    style,
+                ]}
+                disabled={disabled || loading}
+                onPressIn={handlePressIn}
+                onPressOut={handlePressOut}
+                activeOpacity={1}
+                {...props}
+            >
+                {/* Ripple waves (only for primary variant) */}
+                {variant === 'primary' && !prefersReducedMotion && (
+                    <>
+                        {/* Wave 1 */}
+                        <Animated.View
+                            style={[
+                                styles.ripple,
+                                {
+                                    transform: [{ scale: ripple1Scale }],
+                                    opacity: ripple1Opacity,
+                                    backgroundColor: theme.colors.primary,
+                                },
+                            ]}
+                            pointerEvents="none"
+                        />
+                        {/* Wave 2 */}
+                        <Animated.View
+                            style={[
+                                styles.ripple,
+                                {
+                                    transform: [{ scale: ripple2Scale }],
+                                    opacity: ripple2Opacity,
+                                    backgroundColor: theme.colors.primary,
+                                },
+                            ]}
+                            pointerEvents="none"
+                        />
+                    </>
+                )}
+
+                {loading ? (
+                    <ActivityIndicator
+                        size="small"
+                        color={variant === 'primary' ? '#ffffff' : theme.colors.primary}
+                    />
+                ) : (
+                    <Text style={getTextStyle()}>{title}</Text>
+                )}
+            </TouchableOpacity>
+        </Animated.View>
     );
 };
 
@@ -114,6 +229,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         marginBottom: 12,
+        overflow: 'hidden',
     },
     small: {
         paddingVertical: 10,
@@ -147,5 +263,11 @@ const styles = StyleSheet.create({
     },
     largeText: {
         fontSize: 17,
+    },
+    ripple: {
+        position: 'absolute',
+        width: '100%',
+        height: '100%',
+        borderRadius: 12,
     },
 });
