@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
     View,
     Text,
@@ -6,10 +6,12 @@ import {
     ScrollView,
     Pressable,
     ActivityIndicator,
-    Switch,
     Image,
     Modal, TextInput, KeyboardAvoidingView, Platform,
-    RefreshControl
+    RefreshControl,
+    FlatList,
+    Dimensions,
+    Animated
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
@@ -24,12 +26,20 @@ import type { AppDispatch } from '../../store/store';
 import { swipeService } from '../../services/api/swipes';
 import type { Snippet } from '../../services/api/snippets';
 
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const GRID_PADDING = 20;
+const GRID_GAP = 8;
+const GRID_COLUMNS = 3;
+const GRID_ITEM_SIZE = (SCREEN_WIDTH - (GRID_PADDING * 2) - (GRID_GAP * (GRID_COLUMNS - 1))) / GRID_COLUMNS;
+
 export const ProfileScreen = () => {
     const { insets, theme, toggleTheme, showToast } = useScreenSetup();
     const router = useRouter();
     const { user, isAuthenticated, logout } = useAuth();
     const [likedSnippets, setLikedSnippets] = useState<Snippet[]>([]);
     const [loadingSnippets, setLoadingSnippets] = useState(false);
+    const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+    const fadeAnim = useRef(new Animated.Value(1)).current;
     const [showEditModal, setShowEditModal] = useState(false);
     const [editUsername, setEditUsername] = useState(user?.username || '');
     const [editEmail, setEditEmail] = useState(user?.email || '');
@@ -53,6 +63,21 @@ export const ProfileScreen = () => {
         } finally {
             setRefreshing(false);
         }
+    };
+
+    const handleViewModeToggle = () => {
+        Animated.timing(fadeAnim, {
+            toValue: 0,
+            duration: 150,
+            useNativeDriver: true,
+        }).start(() => {
+            setViewMode(viewMode === 'list' ? 'grid' : 'list');
+            Animated.timing(fadeAnim, {
+                toValue: 1,
+                duration: 150,
+                useNativeDriver: true,
+            }).start();
+        });
     };
 
     const handlePickImage = async () => {
@@ -332,9 +357,21 @@ export const ProfileScreen = () => {
 
                 {/* Liked Snippets Section */}
                 <View style={styles.likedSection}>
-                    <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
-                        Snippets You Liked
-                    </Text>
+                    <View style={styles.sectionHeader}>
+                        <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
+                            Snippets You Liked
+                        </Text>
+                        <Pressable
+                            onPress={handleViewModeToggle}
+                            style={styles.viewToggle}
+                        >
+                            <Ionicons
+                                name={viewMode === 'list' ? 'grid-outline' : 'list-outline'}
+                                size={22}
+                                color={theme.colors.text}
+                            />
+                        </Pressable>
+                    </View>
 
                     {loadingSnippets ? (
                         <View style={styles.emptyState}>
@@ -351,49 +388,90 @@ export const ProfileScreen = () => {
                             </Text>
                         </View>
                     ) : (
-                        <View style={styles.snippetsList}>
-                            {likedSnippets.map((snippet) => (
-                                <Pressable
-                                    key={snippet.id}
-                                    style={[styles.snippetCard, {
-                                        backgroundColor: theme.colors.surface,
-                                        borderColor: theme.colors.border,
-                                    }]}
-                                    onPress={() => {
-                                        router.push(`/(tabs)/artist-profile/${snippet.artist_id}`);
-                                    }}
-                                >
-                                    {/* Cover Art or Placeholder */}
-                                    {snippet.cover_art_url ? (
-                                        <Image
-                                            source={{ uri: snippet.cover_art_url }}
-                                            style={styles.snippetCover}
-                                        />
-                                    ) : (
-                                        <View style={[styles.snippetCoverPlaceholder, {
-                                            backgroundColor: theme.isDark ? 'rgba(148,120,233,0.15)' : 'rgba(148,120,233,0.1)'
-                                        }]}>
-                                            <Ionicons name="musical-note" size={24} color={theme.colors.primary} />
-                                        </View>
+                        <Animated.View style={{ opacity: fadeAnim }}>
+                            { viewMode === 'list' ? (
+                                <View style={styles.snippetsList}>
+                                    {likedSnippets.map((snippet) => (
+                                        <Pressable
+                                            key={snippet.id}
+                                            style={[styles.snippetCard, {
+                                                backgroundColor: theme.colors.surface,
+                                                borderColor: theme.colors.border,
+                                            }]}
+                                            onPress={() => {
+                                                router.push(`/(tabs)/artist-profile/${snippet.artist_id}`);
+                                            }}
+                                        >
+                                            {/* Cover Art or Placeholder */}
+                                            {snippet.cover_art_url ? (
+                                                <Image
+                                                    source={{ uri: snippet.cover_art_url }}
+                                                    style={styles.snippetCover}
+                                                />
+                                            ) : (
+                                                <View style={[styles.snippetCoverPlaceholder, {
+                                                    backgroundColor: theme.isDark ? 'rgba(148,120,233,0.15)' : 'rgba(148,120,233,0.1)'
+                                                }]}>
+                                                    <Ionicons name="musical-note" size={24} color={theme.colors.primary} />
+                                                </View>
+                                            )}
+
+                                            {/* Snippet Info */}
+                                            <View style={styles.snippetInfo}>
+                                                <Text style={[styles.snippetTitle, { color: theme.colors.text }]} numberOfLines={1}>
+                                                    {snippet.title}
+                                                </Text>
+                                                <View style={styles.snippetMeta}>
+                                                    <Ionicons name="flame" size={14} color={theme.colors.primary} />
+                                                    <Text style={[styles.snippetMetaText, { color: theme.colors.textSecondary }]}>
+                                                        {snippet.fire_count}
+                                                    </Text>
+                                                </View>
+                                            </View>
+
+                                            <Ionicons name="chevron-forward" size={20} color={theme.colors.textSecondary} />
+                                        </Pressable>
+                                    ))}
+                                </View>
+                            ) : (
+                                // GRID VIEW (new layout)
+                                <FlatList
+                                    data={likedSnippets}
+                                    numColumns={GRID_COLUMNS}
+                                    scrollEnabled={false}
+                                    keyExtractor={(item) => item.id.toString()}
+                                    columnWrapperStyle={styles.gridRow}
+                                    renderItem={({ item: snippet }) => (
+                                        <Pressable
+                                            style={styles.gridItem}
+                                            onPress={() => {
+                                                router.push(`/(tabs)/artist-profile/${snippet.artist_id}`);
+                                            }}
+                                        >
+                                            {snippet.cover_art_url ? (
+                                                <Image
+                                                    source={{ uri: snippet.cover_art_url }}
+                                                    style={styles.gridItemImage}
+                                                />
+                                            ) : (
+                                                <View style={[styles.gridItemPlaceholder, {
+                                                    backgroundColor: theme.isDark ? 'rgba(148,120,233,0.15)' : 'rgba(148,120,233,0.1)'
+                                                }]}>
+                                                    <Ionicons name="musical-note" size={32} color={theme.colors.primary} />
+                                                </View>
+                                            )}
+
+                                            {/* Title Overlay */}
+                                            <View style={styles.gridItemOverlay}>
+                                                <Text style={styles.gridItemTitle} numberOfLines={2}>
+                                                    {snippet.title}
+                                                </Text>
+                                            </View>
+                                        </Pressable>
                                     )}
-
-                                    {/* Snippet Info */}
-                                    <View style={styles.snippetInfo}>
-                                        <Text style={[styles.snippetTitle, { color: theme.colors.text }]} numberOfLines={1}>
-                                            {snippet.title}
-                                        </Text>
-                                        <View style={styles.snippetMeta}>
-                                            <Ionicons name="flame" size={14} color={theme.colors.primary} />
-                                            <Text style={[styles.snippetMetaText, { color: theme.colors.textSecondary }]}>
-                                                {snippet.fire_count}
-                                            </Text>
-                                        </View>
-                                    </View>
-
-                                    <Ionicons name="chevron-forward" size={20} color={theme.colors.textSecondary} />
-                                </Pressable>
-                            ))}
-                        </View>
+                                />
+                            )}
+                        </Animated.View>
                     )}
                 </View>
 
@@ -809,6 +887,16 @@ const styles = StyleSheet.create({
     likedSection: {
         gap: 16,
     },
+    sectionHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 16,
+    },
+    viewToggle: {
+        padding: 8,
+        borderRadius: 8,
+    },
     sectionTitle: {
         fontSize: 18,
         fontWeight: '700',
@@ -963,6 +1051,41 @@ const styles = StyleSheet.create({
     },
     snippetsList: {
         gap: 12,
+    },
+    gridRow: {
+        justifyContent: 'flex-start',
+        marginBottom: GRID_GAP,
+    },
+    gridItem: {
+        width: GRID_ITEM_SIZE,
+        height: GRID_ITEM_SIZE,
+        marginRight: GRID_GAP,
+        borderRadius: 8,
+        overflow: 'hidden',
+    },
+    gridItemImage: {
+        width: '100%',
+        height: '100%',
+    },
+    gridItemPlaceholder: {
+        width: '100%',
+        height: '100%',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    gridItemOverlay: {
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.7)',
+        padding: 8,
+    },
+    gridItemTitle: {
+        color: '#FFFFFF',
+        fontSize: 12,
+        fontWeight: '600',
+        lineHeight: 14,
     },
     snippetCard: {
         flexDirection: 'row',
