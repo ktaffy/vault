@@ -15,7 +15,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
 import { authService, type PublicArtistProfile } from '../../services/api/auth';
-import { snippetService, type Snippet } from '../../services/api/snippets';
+import { snippetService } from '../../services/api/snippets';
+import { ArtistSnippet } from '../../types/snippet';
 import { useRouter } from 'expo-router';
 import { useAudioPlayback } from '../../hooks/useAudioPlayback';
 import { formatTime } from '../../utils/audioHelpers';
@@ -47,7 +48,7 @@ export const ArtistProfileScreen: React.FC<ArtistProfileScreenProps> = ({ artist
     const router = useRouter();
 
     const [profile, setProfile] = useState<PublicArtistProfile | null>(null);
-    const [snippets, setSnippets] = useState<Snippet[]>([]);
+    const [snippets, setSnippets] = useState<ArtistSnippet[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [playingSnippetId, setPlayingSnippetId] = useState<number | null>(null);
@@ -115,7 +116,7 @@ export const ArtistProfileScreen: React.FC<ArtistProfileScreenProps> = ({ artist
         }
     };
 
-    const handlePlaySnippet = (snippet: Snippet) => {
+    const handlePlaySnippet = (snippet: ArtistSnippet) => {
         if (playingSnippetId === snippet.id) {
             setPlayingSnippetId(null);
             setCurrentPlayer(null);
@@ -342,7 +343,7 @@ export const ArtistProfileScreen: React.FC<ArtistProfileScreenProps> = ({ artist
 };
 
 const AudioPlayerComponent: React.FC<{
-    snippet: Snippet;
+    snippet: ArtistSnippet;
     onEnd: () => void;
     onProgress: (progress: number) => void;
 }> = ({ snippet, onEnd, onProgress }) => {
@@ -394,7 +395,7 @@ const AudioPlayerComponent: React.FC<{
 };
 
 const SnippetCard: React.FC<{
-    snippet: Snippet;
+    snippet: ArtistSnippet;
     isPlaying: boolean;
     onPlay: () => void;
     theme: any;

@@ -3,7 +3,8 @@ import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Anima
 import { Ionicons } from '@expo/vector-icons';
 import { useScreenSetup } from '../../hooks/useScreenSetup';
 import { useLocalSearchParams, useFocusEffect } from 'expo-router';
-import { snippetService, Snippet } from '../../services/api/snippets';
+import { snippetService } from '../../services/api/snippets';
+import { ArtistSnippet } from '../../types/snippet';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { useAudioPlayback } from '../../hooks/useAudioPlayback';
 import { audioCache } from '../../utils/audioCache';
@@ -27,7 +28,7 @@ export const StatsScreen = () => {
     const { id } = useLocalSearchParams();
     const snippetId = Number(id);
 
-    const [snippet, setSnippet] = useState<Snippet | null>(null);
+    const [snippet, setSnippet] = useState<ArtistSnippet | null>(null);
     const [loading, setLoading] = useState(true);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [deleting, setDeleting] = useState(false);

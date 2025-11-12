@@ -324,18 +324,18 @@ export const SnippetCard: React.FC<SnippetCardProps> = ({
     const { theme } = useTheme();
     const router = useRouter();
     const animatedProgress = useRef(new Animated.Value(progress)).current;
-    const previousSnippetId = useRef(snippet.snippet_id);
+    const previousSnippetId = useRef(snippet.id);
     const pulseAnim = useRef(new Animated.Value(1)).current;
     const glowAnim = useRef(new Animated.Value(0)).current;
     const [isSeeking, setIsSeeking] = useState(false);
     const [seekValue, setSeekValue] = useState(0);
 
     useEffect(() => {
-        if (previousSnippetId.current !== snippet.snippet_id) {
+        if (previousSnippetId.current !== snippet.id) {
             animatedProgress.setValue(0);
-            previousSnippetId.current = snippet.snippet_id;
+            previousSnippetId.current = snippet.id;
         }
-    }, [snippet.snippet_id]);
+    }, [snippet.id]);
 
     useEffect(() => {
         if (!isSeeking) {

@@ -29,7 +29,7 @@ export const useFeedAudio = () => {
     );
 
     useEffect(() => {
-        if (currentSnippet && currentSnippet.snippet_id !== previousSnippetId.current) {
+        if (currentSnippet && currentSnippet.id !== previousSnippetId.current) {
             audioCache.cleanup();
             audioCache.forEach((player, url) => {
                 if (url !== currentSnippet.audio_url) {
@@ -54,9 +54,9 @@ export const useFeedAudio = () => {
                 }
             }
 
-            previousSnippetId.current = currentSnippet.snippet_id;
+            previousSnippetId.current = currentSnippet.id;
         }
-    }, [currentSnippet?.snippet_id, currentSnippet?.audio_url, cachedPlayer]);
+    }, [currentSnippet?.id, currentSnippet?.audio_url, cachedPlayer]);
 
     return {
         ...audio,

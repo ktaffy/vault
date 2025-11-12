@@ -1,31 +1,9 @@
 import { apiClient } from './client';
-
-export interface UploadSnippetResponse {
-    id: number;
-    title: string;
-    audio_url: string;
-    cover_art_url?: string | null;
-    message: string;
-}
-
-export interface Snippet {
-    id: number;
-    title: string;
-    artist_id: number;
-    audio_url: string;
-    cover_art_url?: string | null;
-    duration_seconds: number;
-    play_count: number;
-    fire_count: number;
-    skip_count: number;
-    fire_rate: number;
-    is_active: boolean;
-    uploaded_at: string;
-}
-
-export interface UpdateSnippetRequest {
-    title?: string;
-}
+import {
+    ArtistSnippet,
+    UploadSnippetResponse,
+    UpdateSnippetRequest
+} from '../../types/snippet';
 
 export interface ArtistStats {
     snippet: {
@@ -47,20 +25,20 @@ export const snippetService = {
         return apiClient.post<UploadSnippetResponse>('/snippet/upload', formData, true);
     },
 
-    getById: async (id: number): Promise<Snippet> => {
-        return apiClient.get<Snippet>(`/snippet/${id}`);
+    getById: async (id: number): Promise<ArtistSnippet> => {
+        return apiClient.get<ArtistSnippet>(`/snippet/${id}`);
     },
 
-    getArtistSnippet: async (): Promise<Snippet> => {
-        return apiClient.get<Snippet>('/snippet/artist', true);
+    getArtistSnippet: async (): Promise<ArtistSnippet> => {
+        return apiClient.get<ArtistSnippet>('/snippet/artist', true);
     },
 
-    getAllArtistSnippets: async(): Promise<{ snippets: Snippet[] }> => {
-        return apiClient.get<{ snippets: Snippet[] }>('/snippets/artist', true);
+    getAllArtistSnippets: async (): Promise<{ snippets: ArtistSnippet[] }> => {
+        return apiClient.get<{ snippets: ArtistSnippet[] }>('/snippets/artist', true);
     },
 
-    update: async (data: UpdateSnippetRequest): Promise<{ message: string; snippet: Snippet }> => {
-        return apiClient.put<{ message: string; snippet: Snippet }>('/snippet/update', data, true);
+    update: async (data: UpdateSnippetRequest): Promise<{ message: string; snippet: ArtistSnippet }> => {
+        return apiClient.put<{ message: string; snippet: ArtistSnippet }>('/snippet/update', data, true);
     },
 
     delete: async (snippetId: number): Promise<{ message: string }> => {
@@ -71,7 +49,7 @@ export const snippetService = {
         return apiClient.get<ArtistStats>('/artist/stats', true);
     },
 
-    getPublicArtistSnippets: async (artistId: number): Promise<{ snippets: Snippet[] }> => {
-        return apiClient.get<{ snippets: Snippet[] }>(`/artist/${artistId}/snippets`);
+    getPublicArtistSnippets: async (artistId: number): Promise<{ snippets: ArtistSnippet[] }> => {
+        return apiClient.get<{ snippets: ArtistSnippet[] }>(`/artist/${artistId}/snippets`);
     },
 };

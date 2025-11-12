@@ -26,7 +26,7 @@ export const useSwipe = () => {
         if (currentIndex >= snippets.length - 1 && snippets.length > 0) {
             return;
         }
-        const snippetId = currentSnippet.snippet_id;
+        const snippetId = currentSnippet.id;
         dispatch(moveToNextSnippet());
         swipeService.recordSwipe(snippetId, action).catch((err) => {
             // Could add retry logic here if needed

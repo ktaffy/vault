@@ -1,5 +1,5 @@
 import { apiClient } from './client';
-import type { Snippet } from './snippets';
+import type { ArtistSnippet } from '../../types';
 
 export interface SwipeRequest {
     snippet_id: number;
@@ -20,7 +20,7 @@ export const swipeService = {
 
         return apiClient.post<SwipeResponse>('/swipe', body, true);
     },
-    getLikedSnippets: async (): Promise<{ snippets: Snippet[] }> => {
-        return apiClient.get<{ snippets: Snippet[] }>('/swipes/liked', true);
+    getLikedSnippets: async (): Promise<{ snippets: ArtistSnippet[] }> => {
+        return apiClient.get<{ snippets: ArtistSnippet[] }>('/swipes/liked', true);
     },
 };

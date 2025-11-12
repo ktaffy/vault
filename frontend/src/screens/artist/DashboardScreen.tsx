@@ -2,7 +2,8 @@ import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { View, Text, StyleSheet, Pressable, FlatList, ActivityIndicator, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useScreenSetup } from '../../hooks/useScreenSetup';
-import { snippetService, Snippet } from '../../services/api/snippets';
+import { snippetService } from '../../services/api/snippets';
+import { ArtistSnippet } from '../../types/snippet';
 import { useAudioPlayer, useAudioPlayerStatus, setAudioModeAsync } from 'expo-audio';
 import { useFocusEffect } from '@react-navigation/native';
 import { useAudioPlayback } from '../../hooks/useAudioPlayback';
@@ -30,7 +31,7 @@ const PreloadAudio: React.FC<{ audioUrl: string }> = ({ audioUrl }) => {
 
 export const DashboardScreen = () => {
     const { insets, theme, router } = useScreenSetup();
-    const [snippets, setSnippets] = useState<Snippet[]>([]);
+    const [snippets, setSnippets] = useState<ArtistSnippet[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [playingSnippetId, setPlayingSnippetId] = useState<number | null>(null);
@@ -61,7 +62,7 @@ export const DashboardScreen = () => {
         setAudioProgress(progress);
     }, []);
 
-    const handlePlayPause = (snippet: Snippet, e: any) => {
+    const handlePlayPause = (snippet: ArtistSnippet, e: any) => {
         e.stopPropagation();
 
         if (playingSnippetId === snippet.id) {
@@ -233,7 +234,7 @@ const StatCard: React.FC<{ icon: any; label: string; value: string; theme: any }
 );
 
 const SnippetCard: React.FC<{
-    snippet: Snippet;
+    snippet: ArtistSnippet;
     theme: any;
     onPress: () => void;
     isPlaying: boolean;
@@ -330,7 +331,7 @@ const SnippetCard: React.FC<{
 );
 
 const AudioPlayerComponent: React.FC<{
-    snippet: Snippet;
+    snippet: ArtistSnippet;
     onEnd: () => void;
     onProgress: (progress: number) => void;
 }> = ({ snippet, onEnd, onProgress }) => {

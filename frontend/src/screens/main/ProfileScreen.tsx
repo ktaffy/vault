@@ -24,7 +24,7 @@ import { updateUserProfile } from '../../store/slices/authSlice';
 import { authService } from '../../services/api/auth';
 import type { AppDispatch } from '../../store/store';
 import { swipeService } from '../../services/api/swipes';
-import type { Snippet } from '../../services/api/snippets';
+import type { ArtistSnippet } from '../../types/snippet';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const GRID_PADDING = 20;
@@ -36,7 +36,7 @@ export const ProfileScreen = () => {
     const { insets, theme, toggleTheme, showToast } = useScreenSetup();
     const router = useRouter();
     const { user, isAuthenticated, logout } = useAuth();
-    const [likedSnippets, setLikedSnippets] = useState<Snippet[]>([]);
+    const [likedSnippets, setLikedSnippets] = useState<ArtistSnippet[]>([]);
     const [loadingSnippets, setLoadingSnippets] = useState(false);
     const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
     const fadeAnim = useRef(new Animated.Value(1)).current;

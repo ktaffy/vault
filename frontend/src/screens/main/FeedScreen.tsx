@@ -49,7 +49,7 @@ export const FeedScreen = () => {
             return;
         }
         if (previousIndex.current !== currentIndex && currentSnippet && displayedSnippet) {
-            if (currentSnippet.snippet_id !== displayedSnippet.snippet_id) {
+            if (currentSnippet.id !== displayedSnippet.id) {
                 isAnimating.current = true;
                 Animated.timing(slideAnim, {
                     toValue: -SCREEN_WIDTH,
